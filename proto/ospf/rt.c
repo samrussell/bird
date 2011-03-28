@@ -238,6 +238,13 @@ add_network(struct ospf_area *oa, ip_addr px, int pxlen, int metric, struct top_
     .nh = en->nh
   };
 
+  if (pxlen < 0 || pxlen > MAX_PREFIX_LENGTH)
+  {
+    log(L_WARN "%s: Invalid prefix in LSA (Type: %04x, Id: %R, Rt: %R)",
+	oa->po->proto.name, en->lsa.type, en->lsa.id, en->lsa.rt);
+    return;
+  }
+
   if (en == oa->rt)
   {
     /* 
@@ -323,7 +330,8 @@ ospf_rt_spfa_rtlinks(struct ospf_area *oa, struct top_hash_entry *act, struct to
 {
   // struct proto *p = &oa->po->proto;
   struct proto_ospf *po = oa->po;
-  u32 i;
+  ip_addr prefix UNUSED;
+  int pxlen UNUSED, i;
 
   struct ospf_lsa_rt *rt = en->lsa_body;
   struct ospf_lsa_rt_link *rr = (struct ospf_lsa_rt_link *) (rt + 1);
@@ -344,9 +352,9 @@ ospf_rt_spfa_rtlinks(struct ospf_area *oa, struct top_hash_entry *act, struct to
 	   * the same result by handing them here because add_network()
 	   * will keep the best (not the first) found route.
 	   */
-	  add_network(oa, ipa_from_u32(rtl->id),
-		      ipa_mklen(ipa_from_u32(rtl->data)),
-		      act->dist + rtl->metric, act);
+	  prefix = ipa_from_u32(rtl->id & rtl->data);
+	  pxlen = ipa_mklen(ipa_from_u32(rtl->data));
+	  add_network(oa, prefix, pxlen, act->dist + rtl->metric, act);
 	  break;
 #endif
 
@@ -385,6 +393,8 @@ ospf_rt_spfa(struct ospf_area *oa)
   struct ospf_lsa_rt *rt;
   struct ospf_lsa_net *ln;
   struct top_hash_entry *act, *tmp;
+  ip_addr prefix UNUSED;
+  int pxlen UNUSED;
   u32 i, *rts;
   node *n;
 
@@ -458,8 +468,9 @@ ospf_rt_spfa(struct ospf_area *oa)
       ln = act->lsa_body;
 
 #ifdef OSPFv2
-      add_network(oa, ipa_and(ipa_from_u32(act->lsa.id), ln->netmask),
-		  ipa_mklen(ln->netmask), act->dist, act);
+      prefix = ipa_and(ipa_from_u32(act->lsa.id), ln->netmask);
+      pxlen = ipa_mklen(ln->netmask);
+      add_network(oa, prefix, pxlen, act->dist, act);
 #endif
 
       rts = (u32 *) (ln + 1);
@@ -598,8 +609,8 @@ ospf_rt_sum(struct ospf_area *oa)
     {
 #ifdef OSPFv2
       struct ospf_lsa_sum *ls = en->lsa_body;
-      pxlen = ipa_mklen(ls->netmask);
       ip = ipa_and(ipa_from_u32(en->lsa.id), ls->netmask);
+      pxlen = ipa_mklen(ls->netmask);
 #else /* OSPFv3 */
       u8 pxopts;
       u16 rest;
@@ -609,6 +620,13 @@ ospf_rt_sum(struct ospf_area *oa)
       if (pxopts & OPT_PX_NU)
 	continue;
 #endif
+
+      if (pxlen < 0 || pxlen > MAX_PREFIX_LENGTH)
+      {
+	log(L_WARN "%s: Invalid prefix in LSA (Type: %04x, Id: %R, Rt: %R)",
+	    p->name, en->lsa.type, en->lsa.id, en->lsa.rt);
+	continue;
+      }
 
       metric = ls->metric & METRIC_MASK;
       options = 0;
@@ -676,7 +694,7 @@ ospf_rt_sum(struct ospf_area *oa)
 static void
 ospf_rt_sum_tr(struct ospf_area *oa)
 {
-  // struct proto *p = &oa->po->proto;
+  struct proto *p = &oa->po->proto;
   struct proto_ospf *po = oa->po;
   struct ospf_area *bb = po->backbone;
   ip_addr abrip;
@@ -709,8 +727,8 @@ ospf_rt_sum_tr(struct ospf_area *oa)
       int pxlen;
 #ifdef OSPFv2
       struct ospf_lsa_sum *ls = en->lsa_body;
-      pxlen = ipa_mklen(ls->netmask);
       ip = ipa_and(ipa_from_u32(en->lsa.id), ls->netmask);
+      pxlen = ipa_mklen(ls->netmask);
 #else /* OSPFv3 */
       u8 pxopts;
       u16 rest;
@@ -720,6 +738,13 @@ ospf_rt_sum_tr(struct ospf_area *oa)
       if (pxopts & OPT_PX_NU)
 	continue;
 #endif
+
+      if (pxlen < 0 || pxlen > MAX_PREFIX_LENGTH)
+      {
+	log(L_WARN "%s: Invalid prefix in LSA (Type: %04x, Id: %R, Rt: %R)",
+	    p->name, en->lsa.type, en->lsa.id, en->lsa.rt);
+	continue;
+      }
 
       metric = ls->metric & METRIC_MASK;
       re = fib_find(&po->rtf, &ip, pxlen);
@@ -1113,9 +1138,9 @@ ospf_ext_spf(struct proto_ospf *po)
       rt_tag = 0;
 #endif
 
-    if (pxlen < 0)
+    if (pxlen < 0 || pxlen > MAX_PREFIX_LENGTH)
     {
-      log(L_WARN "%s: Invalid mask in LSA (Type: %04x, Id: %R, Rt: %R)",
+      log(L_WARN "%s: Invalid prefix in LSA (Type: %04x, Id: %R, Rt: %R)",
 	  p->name, en->lsa.type, en->lsa.id, en->lsa.rt);
       continue;
     }
@@ -1575,6 +1600,7 @@ again1:
 	e->pflags = 0;
 	e->net = ne;
 	e->pref = p->preference;
+
 	DBG("Mod rte type %d - %I/%d via %I on iface %s, met %d\n",
 	    a0.source, nf->fn.prefix, nf->fn.pxlen, a0.gw, a0.iface ? a0.iface->name : "(none)", nf->n.metric1);
 	rte_update(p->table, ne, p, p, e);
