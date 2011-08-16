@@ -99,6 +99,7 @@ parse_args(int argc, char **argv)
       tmp[-1] = 0;
 
       once = 1;
+      skip_input = 1;
     }
 }
 
