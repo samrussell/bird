@@ -283,6 +283,7 @@ do_rt_notify(struct announce_hook *ah, net *net, rte *new, rte *old, ea_list *tm
    */
 
   struct proto_limit *l = ah->out_limit;
+  
   if (l && new)
     {
       if ((!old || refeed) && (stats->exp_routes >= l->limit))

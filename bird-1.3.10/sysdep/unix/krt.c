@@ -900,6 +900,8 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
 {
   struct krt_proto *p = (struct krt_proto *) P;
 
+  log_msg(L_DEBUG "rt_notify() called");
+  
   if (config->shutdown)
     return;
   if (!(net->n.flags & KRF_INSTALLED))
