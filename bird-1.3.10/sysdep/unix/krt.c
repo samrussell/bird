@@ -902,29 +902,17 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   
   /* be filthy and just print out the route inline EWWWWW FIX THIS */
   
-  char ia[STD_ADDRESS_P_LENGTH+8];
+  byte ia[STD_ADDRESS_P_LENGTH+8];
   struct fib_node *pfn;
   
   log_msg(L_DEBUG "krt_notify() called");
   //sprintf(ia2, "%x%x%x%x", (net->n.prefix)[0], (net->n.prefix)[1], (net->n.prefix[2]), (net->n.prefix[3]));
   //log_msg(L_DEBUG, ia2);
-  pfn = &(net->n);
-  while (pfn){
-    ia[0]=0;
-    sprintf(ia, "%I/%d", pfn->prefix, pfn->pxlen);
-    if(ia[0]){
-      char c;
-      log_msg(L_DEBUG, ia);
-      c = ia[0];
-      ia[0]=0;
-      sprintf(ia, "%x", c);
-      log_msg(L_DEBUG, ia);
-      break;
-    }
-    log_msg(L_DEBUG, "ia is empty");
-    pfn=pfn->next;
-  }
-
+  //fn = net->n;
+  //bsprintf(ia, "%I/%d", pfn->prefix, pfn->pxlen);
+  //log_msg("%I/%d", net->n.prefix, net->n.pxlen);
+  log_msg("prefix: %x %x %x %x", ((unsigned char *)net->n.prefix)[0],((unsigned char *)net->n.prefix)[1],((unsigned char *)net->n.prefix)[2],((unsigned char *)net->n.prefix)[3]);
+  
   if (config->shutdown)
     return;
   if (!(net->n.flags & KRF_INSTALLED))
