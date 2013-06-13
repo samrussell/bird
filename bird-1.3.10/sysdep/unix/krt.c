@@ -906,7 +906,6 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   rta* attrs;
   struct hostentry* hostentry;
   struct iface* iface;
-  struct mpnh* mpnh;
   
   log_msg(L_DEBUG "krt_notify() called");
   //sprintf(ia2, "%x%x%x%x", (net->n.prefix)[0], (net->n.prefix)[1], (net->n.prefix[2]), (net->n.prefix[3]));
@@ -921,9 +920,7 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
       attrs = new->attrs;
       // check attrs->hostentry (struct hostentry)
       // check attrs->iface (struct iface)
-      hostentry = attrs->hostentry;
       iface = attrs->iface;
-      mpnh = attrs->mpnh;
       log_msg("Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(pfn->prefix)))[3], ((unsigned char *)(&(pfn->prefix)))[2], ((unsigned char *)(&(pfn->prefix)))[1], ((unsigned char *)(&(pfn->prefix)))[0], net->n.pxlen);
       // clever shit?
       // should use rt_format_via(rte *e, byte *via) from rt-table.c
