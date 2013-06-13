@@ -347,7 +347,7 @@ krt_learn_announce_update(struct krt_proto *p, rte *e)
   ee->pref = p->p.preference;
   ee->u.krt = e->u.krt;
   // do some mad hax and print out our routes
-  log_msg(L_DEBUG, "krt_learn_announce_update() about to call rte_update()");
+  log_msg(L_DEBUG "krt_learn_announce_update() about to call rte_update()");
   log_msg(L_DEBUG "Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(n->n.prefix)))[3], ((unsigned char *)(&(n->n.prefix)))[2], ((unsigned char *)(&(n->n.prefix)))[1], ((unsigned char *)(&(n->n.prefix)))[0], n->n.pxlen);
   if(aa->gw){
     // try and print
