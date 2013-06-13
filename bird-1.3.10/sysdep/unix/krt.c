@@ -904,7 +904,7 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   
   byte ia[STD_ADDRESS_P_LENGTH+8];
   log_msg(L_DEBUG "krt_notify() called");
-  bsprintf(ia, "%I/%d", net->net.prefix, net->net.pxlen);
+  bsprintf(ia, "%I/%d", net->prefix, net->pxlen);
   log_msg(L_DEBUG, ia);
 
   if (config->shutdown)
