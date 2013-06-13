@@ -346,6 +346,16 @@ krt_learn_announce_update(struct krt_proto *p, rte *e)
   ee->pflags = 0;
   ee->pref = p->p.preference;
   ee->u.krt = e->u.krt;
+  // do some mad hax and print out our routes
+  log_msg(L_DEBUG, "krt_learn_announce_update() about to call rte_update()");
+  log_msg(L_DEBUG "Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(n->n.prefix)))[3], ((unsigned char *)(&(n->n.prefix)))[2], ((unsigned char *)(&(n->n.prefix)))[1], ((unsigned char *)(&(n->n.prefix)))[0], n->n.pxlen);
+  if(aa->gw){
+    // try and print
+    log_msg(L_DEBUG "Next hop is %u.%u.%u.%u", ((unsigned char *)(&(attrs->gw)))[3], ((unsigned char *)(&(attrs->gw)))[2], ((unsigned char *)(&(attrs->gw)))[1], ((unsigned char *)(&(attrs->gw)))[0]);
+  }
+  if(aa->iface){
+    log_msg(L_DEBUG "Interface: %s", aa->iface->name);
+  }
   rte_update(p->p.table, nn, &p->p, &p->p, ee);
 }
 
@@ -921,19 +931,19 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
       // check attrs->hostentry (struct hostentry)
       // check attrs->iface (struct iface)
       iface = attrs->iface;
-      log_msg("Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(pfn->prefix)))[3], ((unsigned char *)(&(pfn->prefix)))[2], ((unsigned char *)(&(pfn->prefix)))[1], ((unsigned char *)(&(pfn->prefix)))[0], net->n.pxlen);
+      log_msg(L_DEBUG "Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(pfn->prefix)))[3], ((unsigned char *)(&(pfn->prefix)))[2], ((unsigned char *)(&(pfn->prefix)))[1], ((unsigned char *)(&(pfn->prefix)))[0], net->n.pxlen);
       // clever shit?
       // should use rt_format_via(rte *e, byte *via) from rt-table.c
       if(attrs->gw){
         // try and print
-        log_msg("Next hop is %u.%u.%u.%u", ((unsigned char *)(&(attrs->gw)))[3], ((unsigned char *)(&(attrs->gw)))[2], ((unsigned char *)(&(attrs->gw)))[1], ((unsigned char *)(&(attrs->gw)))[0]);
+        log_msg(L_DEBUG "Next hop is %u.%u.%u.%u", ((unsigned char *)(&(attrs->gw)))[3], ((unsigned char *)(&(attrs->gw)))[2], ((unsigned char *)(&(attrs->gw)))[1], ((unsigned char *)(&(attrs->gw)))[0]);
       }
       if(iface){
-        log_msg("Interface: %s", iface->name);
+        log_msg(L_DEBUG "Interface: %s", iface->name);
       }
     }
     else{
-      log_msg("Removed route to %u.%u.%u.%u/%d", ((unsigned char *)(&(pfn->prefix)))[3], ((unsigned char *)(&(pfn->prefix)))[2], ((unsigned char *)(&(pfn->prefix)))[1], ((unsigned char *)(&(pfn->prefix)))[0], net->n.pxlen);
+      log_msg(L_DEBUG "Removed route to %u.%u.%u.%u/%d", ((unsigned char *)(&(pfn->prefix)))[3], ((unsigned char *)(&(pfn->prefix)))[2], ((unsigned char *)(&(pfn->prefix)))[1], ((unsigned char *)(&(pfn->prefix)))[0], net->n.pxlen);
     }
     pfn = pfn->next;
   }
