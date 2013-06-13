@@ -903,6 +903,9 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   /* be filthy and just print out the route inline EWWWWW FIX THIS */
   
   struct fib_node *pfn;
+  rta* attrs;
+  struct hostentry* hostentry;
+  struct iface* iface;
   
   log_msg(L_DEBUG "krt_notify() called");
   //sprintf(ia2, "%x%x%x%x", (net->n.prefix)[0], (net->n.prefix)[1], (net->n.prefix[2]), (net->n.prefix[3]));
@@ -913,7 +916,21 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   pfn = &(net->n);
   while(pfn){
     if(new){
+      // check rte stuff
+      attrs = new->attrs;
+      // check attrs->hostentry (struct hostentry)
+      // check attrs->iface (struct iface)
+      hostentry = new->hostentry;
+      iface = new->iface;
       log_msg("Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(pfn->prefix)))[3], ((unsigned char *)(&(pfn->prefix)))[2], ((unsigned char *)(&(pfn->prefix)))[1], ((unsigned char *)(&(pfn->prefix)))[0], net->n.pxlen);
+      // clever shit?
+      if(hostentry){
+        // try and print
+        log_msg("Next hop is %u.%u.%u.%u", ((unsigned char *)(&(hostentry->addr)))[3], ((unsigned char *)(&(hostentry->addr)))[2], ((unsigned char *)(&(hostentry->addr)))[1], ((unsigned char *)(&(hostentry->addr)))[0]);
+      }
+      if(iface){
+        log_msg("Interface: %s", iface->name);
+      }
     }
     else{
       log_msg("Removed route to %u.%u.%u.%u/%d", ((unsigned char *)(&(pfn->prefix)))[3], ((unsigned char *)(&(pfn->prefix)))[2], ((unsigned char *)(&(pfn->prefix)))[1], ((unsigned char *)(&(pfn->prefix)))[0], net->n.pxlen);
