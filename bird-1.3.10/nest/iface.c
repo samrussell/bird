@@ -149,7 +149,7 @@ ifa_send_notify(struct proto *p, unsigned c, struct ifa *a)
       // but IS-IS is the best routing protocol ever
       // print some debug so we can confirm that this is where interface updates get sent to router engine from
       log_msg(L_DEBUG "ifa_send_notify() called");
-      log_msg(L_DEBUG "Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(a->prefix)))[3], ((unsigned char *)(&(a->prefix)))[2], ((unsigned char *)(&(a->prefix)))[1], ((unsigned char *)(&(a->prefix)))[0], n->n.pxlen);
+      log_msg(L_DEBUG "Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(a->prefix)))[3], ((unsigned char *)(&(a->prefix)))[2], ((unsigned char *)(&(a->prefix)))[1], ((unsigned char *)(&(a->prefix)))[0], a->pxlen);
       if(a->iface){
         log_msg(L_DEBUG "Interface: %s", a->iface->name);
       }
