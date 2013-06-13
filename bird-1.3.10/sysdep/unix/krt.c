@@ -920,8 +920,8 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
       attrs = new->attrs;
       // check attrs->hostentry (struct hostentry)
       // check attrs->iface (struct iface)
-      hostentry = new->hostentry;
-      iface = new->iface;
+      hostentry = attrs->hostentry;
+      iface = attrs->iface;
       log_msg("Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(pfn->prefix)))[3], ((unsigned char *)(&(pfn->prefix)))[2], ((unsigned char *)(&(pfn->prefix)))[1], ((unsigned char *)(&(pfn->prefix)))[0], net->n.pxlen);
       // clever shit?
       if(hostentry){
