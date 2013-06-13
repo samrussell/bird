@@ -903,7 +903,6 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   /* be filthy and just print out the route inline EWWWWW FIX THIS */
   
   char ia[STD_ADDRESS_P_LENGTH+8];
-  char ia2[9];
   struct fib_node *pfn;
   
   log_msg(L_DEBUG "krt_notify() called");
@@ -914,6 +913,11 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
     ia[0]=0;
     sprintf(ia, "%I/%d", pfn->prefix, pfn->pxlen);
     if(ia[0]){
+      char c;
+      log_msg(L_DEBUG, ia);
+      c = ia[0];
+      ia[0]=0;
+      sprintf(ia, "%x", c);
       log_msg(L_DEBUG, ia);
       break;
     }
