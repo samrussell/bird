@@ -911,7 +911,11 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   //fn = net->n;
   //bsprintf(ia, "%I/%d", pfn->prefix, pfn->pxlen);
   //log_msg("%I/%d", net->n.prefix, net->n.pxlen);
-  log_msg("prefix: %u.%u.%u.%u/%d", ((unsigned char *)(&(net->n.prefix)))[3], ((unsigned char *)(&(net->n.prefix)))[2], ((unsigned char *)(&(net->n.prefix)))[1], ((unsigned char *)(&(net->n.prefix)))[0], net->n.pxlen);
+  pfn = &(pfn->n);
+  while(pfn){
+    log_msg("prefix: %u.%u.%u.%u/%d", ((unsigned char *)(&(pfn->prefix)))[3], ((unsigned char *)(&(pfn->prefix)))[2], ((unsigned char *)(&(pfn->prefix)))[1], ((unsigned char *)(&(pfn->prefix)))[0], net->n.pxlen);
+    pfn = pfn->next;
+  }
   //log_msg("prefix: %x %x %x %x", ((unsigned char *)(net->n.prefix))[0],((unsigned char *)(net->n.prefix))[1],((unsigned char *)(net->n.prefix))[2],((unsigned char *)(net->n.prefix))[3]);
   
   if (config->shutdown)
