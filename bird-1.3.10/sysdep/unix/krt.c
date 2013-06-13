@@ -351,7 +351,7 @@ krt_learn_announce_update(struct krt_proto *p, rte *e)
   log_msg(L_DEBUG "Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(n->n.prefix)))[3], ((unsigned char *)(&(n->n.prefix)))[2], ((unsigned char *)(&(n->n.prefix)))[1], ((unsigned char *)(&(n->n.prefix)))[0], n->n.pxlen);
   if(aa->gw){
     // try and print
-    log_msg(L_DEBUG "Next hop is %u.%u.%u.%u", ((unsigned char *)(&(attrs->gw)))[3], ((unsigned char *)(&(attrs->gw)))[2], ((unsigned char *)(&(attrs->gw)))[1], ((unsigned char *)(&(attrs->gw)))[0]);
+    log_msg(L_DEBUG "Next hop is %u.%u.%u.%u", ((unsigned char *)(&(aa->gw)))[3], ((unsigned char *)(&(aa->gw)))[2], ((unsigned char *)(&(aa->gw)))[1], ((unsigned char *)(&(aa->gw)))[0]);
   }
   if(aa->iface){
     log_msg(L_DEBUG "Interface: %s", aa->iface->name);
