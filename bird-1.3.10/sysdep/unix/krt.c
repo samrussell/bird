@@ -903,7 +903,10 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   /* be filthy and just print out the route inline EWWWWW FIX THIS */
   
   char ia[STD_ADDRESS_P_LENGTH+8];
+  char ia2[9];
   log_msg(L_DEBUG "krt_notify() called");
+  sprintf(ia2, "%x%x%x%x", net->n.prefix[0], net->n.prefix[1], net->n.prefix[2], net->n.prefix[3]);
+  log_msg(L_DEBUG, ia2);
   sprintf(ia, "%I/%d", net->n.prefix, net->n.pxlen);
   log_msg(L_DEBUG, ia);
 
