@@ -899,9 +899,14 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
 	   rte *new, rte *old, struct ea_list *eattrs)
 {
   struct krt_proto *p = (struct krt_proto *) P;
-
-  log_msg(L_DEBUG "rt_notify() called");
   
+  /* be filthy and just print out the route inline EWWWWW FIX THIS */
+  
+  byte ia[STD_ADDRESS_P_LENGTH+8];
+  log_msg(L_DEBUG "krt_notify() called");
+  bsprintf(ia, "%I/%d", net->net.prefix, net->net.pxlen);
+  log_msg(L_DEBUG, ia);
+
   if (config->shutdown)
     return;
   if (!(net->n.flags & KRF_INSTALLED))
