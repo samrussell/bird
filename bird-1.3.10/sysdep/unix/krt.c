@@ -902,9 +902,9 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   
   /* be filthy and just print out the route inline EWWWWW FIX THIS */
   
-  byte ia[STD_ADDRESS_P_LENGTH+8];
+  char ia[STD_ADDRESS_P_LENGTH+8];
   log_msg(L_DEBUG "krt_notify() called");
-  bsprintf(ia, "%I/%d", net->n.prefix, net->n.pxlen);
+  sprintf(ia, "%I/%d", net->n.prefix, net->n.pxlen);
   log_msg(L_DEBUG, ia);
 
   if (config->shutdown)
