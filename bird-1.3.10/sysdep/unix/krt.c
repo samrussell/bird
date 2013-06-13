@@ -905,10 +905,19 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   char ia[STD_ADDRESS_P_LENGTH+8];
   char ia2[9];
   log_msg(L_DEBUG "krt_notify() called");
-  sprintf(ia2, "%x%x%x%x", (net->n.prefix)[0], (net->n.prefix)[1], (net->n.prefix[2]), (net->n.prefix[3]));
-  log_msg(L_DEBUG, ia2);
-  sprintf(ia, "%I/%d", net->n.prefix, net->n.pxlen);
-  log_msg(L_DEBUG, ia);
+  //sprintf(ia2, "%x%x%x%x", (net->n.prefix)[0], (net->n.prefix)[1], (net->n.prefix[2]), (net->n.prefix[3]));
+  //log_msg(L_DEBUG, ia2);
+  pfn = &(net->n);
+  while (fn){
+    ia[0]=0;
+    sprintf(ia, "%I/%d", pfn->prefix, pfn->pxlen);
+    if(ia[0]){
+      log_msg(L_DEBUG, ia);
+      break;
+    }
+    log_msg(L_DEBUG, "ia is empty");
+    pfn=pfn->next;
+  }
 
   if (config->shutdown)
     return;
