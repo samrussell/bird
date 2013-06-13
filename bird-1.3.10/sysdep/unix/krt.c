@@ -906,6 +906,7 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   rta* attrs;
   struct hostentry* hostentry;
   struct iface* iface;
+  struct mpnh* mpnh;
   
   log_msg(L_DEBUG "krt_notify() called");
   //sprintf(ia2, "%x%x%x%x", (net->n.prefix)[0], (net->n.prefix)[1], (net->n.prefix[2]), (net->n.prefix[3]));
@@ -922,11 +923,13 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
       // check attrs->iface (struct iface)
       hostentry = attrs->hostentry;
       iface = attrs->iface;
+      mpnh = attrs->mpnh;
       log_msg("Added route to %u.%u.%u.%u/%d", ((unsigned char *)(&(pfn->prefix)))[3], ((unsigned char *)(&(pfn->prefix)))[2], ((unsigned char *)(&(pfn->prefix)))[1], ((unsigned char *)(&(pfn->prefix)))[0], net->n.pxlen);
       // clever shit?
-      if(hostentry){
+      // should use rt_format_via(rte *e, byte *via) from rt-table.c
+      if(attrs->gw){
         // try and print
-        log_msg("Next hop is %u.%u.%u.%u", ((unsigned char *)(&(hostentry->addr)))[3], ((unsigned char *)(&(hostentry->addr)))[2], ((unsigned char *)(&(hostentry->addr)))[1], ((unsigned char *)(&(hostentry->addr)))[0]);
+        log_msg("Next hop is %u.%u.%u.%u", ((unsigned char *)(&(attrs->gw)))[3], ((unsigned char *)(&(attrs->gw)))[2], ((unsigned char *)(&(attrs->gw)))[1], ((unsigned char *)(&(attrs->gw)))[0]);
       }
       if(iface){
         log_msg("Interface: %s", iface->name);
