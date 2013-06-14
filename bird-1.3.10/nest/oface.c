@@ -28,6 +28,7 @@
 
 #include "nest/bird.h"
 #include "nest/iface.h"
+#include "nest/oface.h"
 #include "nest/protocol.h"
 #include "nest/cli.h"
 #include "lib/resource.h"
@@ -254,7 +255,7 @@ of_change_flags(struct iface *i, unsigned flags)
 {
   unsigned of = i->flags;
 
-  i->flags = if_recalc_flags(i, flags);
+  i->flags = of_recalc_flags(i, flags);
   if ((i->flags ^ of) & IF_UP)
     of_notify_change((i->flags & IF_UP) ? IF_CHANGE_UP : IF_CHANGE_DOWN, i);
 }
@@ -548,7 +549,7 @@ ofa_update(struct ifa *a)
   add_tail(&i->addrs, &b->n);
   b->flags = (i->flags & ~IA_FLAGS) | (a->flags & IA_FLAGS);
   if (ofa_recalc_primary(i))
-    if_change_flags(i, i->flags | IF_TMP_DOWN);
+    of_change_flags(i, i->flags | IF_TMP_DOWN);
   if (b->flags & IF_UP)
     ofa_notify_change(IF_CHANGE_CREATE | IF_CHANGE_UP, b);
   return b;
@@ -802,10 +803,10 @@ of_show(void)
 	      (i->flags & IF_IGNORE) ? " Ignored" : "",
 	      i->mtu);
       if (i->addr)
-	if_show_addr(i->addr);
+	of_show_addr(i->addr);
       WALK_LIST(a, i->addrs)
 	if (a != i->addr)
-	  if_show_addr(a);
+	  of_show_addr(a);
     }
   cli_msg(0, "");
 }
