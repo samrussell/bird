@@ -1098,9 +1098,9 @@ rte_dump(rte *e)
 char*
 rte_json_dump(rte *e)
 {
+  net *n = e->net;
   int len = 1024;
   char *output = xmalloc(len);
-  net *n = e->net;
   int buflen = 1024;
   char *buf = xmalloc(buflen);
   output[0] = 0;

@@ -439,6 +439,7 @@ static inline rta *rta_clone(rta *r) { r->uc++; return r; }
 void rta__free(rta *r);
 static inline void rta_free(rta *r) { if (r && !--r->uc) rta__free(r); }
 void rta_dump(rta *);
+char* rta_json_dump(rta *);
 void rta_dump_all(void);
 void rta_show(struct cli *, rta *, ea_list *);
 void rta_set_recursive_next_hop(rtable *dep, rta *a, rtable *tab, ip_addr *gw, ip_addr *ll);

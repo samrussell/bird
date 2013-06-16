@@ -844,6 +844,83 @@ rta_dump(rta *a)
 }
 
 /**
+ * rta_json_dump - dump route attributes as JSON
+ * @a: attribute structure to dump
+ *
+ * This function takes a &rta and returns its contents formatted as JSON
+ */
+char*
+rta_json_dump(rta *a)
+{
+  static char *rts[] = { "RTS_DUMMY", "RTS_STATIC", "RTS_INHERIT", "RTS_DEVICE",
+			 "RTS_STAT_DEV", "RTS_REDIR", "RTS_RIP",
+			 "RTS_OSPF", "RTS_OSPF_IA", "RTS_OSPF_EXT1",
+                         "RTS_OSPF_EXT2", "RTS_BGP" };
+  static char *rtc[] = { "", " BC", " MC", " AC" };
+  static char *rtd[] = { "", " DEV", " HOLE", " UNREACH", " PROHIBIT" };
+  
+  int len = 1024;
+  char *output = xmalloc(len);
+  int buflen = 1024;
+  char *buf = xmalloc(buflen);
+  output[0] = 0;
+  buf[0] = 0;
+
+  sdebug(buf, buflen, "p=%s uc=%d %s %s%s%s h=%04x",
+	a->proto->name, a->uc, rts[a->source], ip_scope_text(a->scope), rtc[a->cast],
+	rtd[a->dest], a->hash_key);
+  while(strlen(buf) >= len-2){
+	  len += 1024;
+	  output = xrealloc(output, len);
+  }
+  strcat(output, buf);
+  if (!(a->aflags & RTAF_CACHED)){
+    sdebug(buf, buflen, " !CACHED");
+    while(strlen(buf) >= len-2){
+	  len += 1024;
+	  output = xrealloc(output, len);
+    }
+    strcat(output, buf);
+  }
+  sdebug(buf, buflen, " <-%I", a->from);
+  while(strlen(buf) >= len-2){
+	  len += 1024;
+	  output = xrealloc(output, len);
+  }
+  strcat(output, buf);
+  if (a->dest == RTD_ROUTER){
+    sdebug(buf, buflen, " ->%I", a->gw);
+    while(strlen(buf) >= len-2){
+      len += 1024;
+	  output = xrealloc(output, len);
+    }
+    strcat(output, buf);
+  }
+  if (a->dest == RTD_DEVICE || a->dest == RTD_ROUTER){
+    sdebug(buf, buflen, " [%s]", a->iface ? a->iface->name : "???" );
+	while(strlen(buf) >= len-2){
+	  len += 1024;
+	  output = xrealloc(output, len);
+    }
+    strcat(output, buf);
+  }
+  if (a->eattrs)
+    {
+      sdebug(buf, buflen, " EA: ");
+	  while(strlen(buf) >= len-2){
+		  len += 1024;
+		  output = xrealloc(output, len);
+	  }
+	  strcat(output, buf);
+      //ea_dump(a->eattrs);
+    }
+  output[strlen(output)] = '\n';
+  output[strlen(output)] = 0;
+  free(buf);
+  return output;
+}
+
+/**
  * rta_dump_all - dump attribute cache
  *
  * This function dumps the whole contents of route attribute cache
