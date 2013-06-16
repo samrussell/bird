@@ -258,6 +258,7 @@ static inline void rte_update(rtable *tab, net *net, struct proto *p, struct pro
 void rte_discard(rtable *tab, rte *old);
 int rt_examine(rtable *t, ip_addr prefix, int pxlen, struct proto *p, struct filter *filter);
 void rte_dump(rte *);
+char* rte_json_dump(rte *);
 void rte_free(rte *);
 rte *rte_do_cow(rte *);
 static inline rte * rte_cow(rte *r) { return (r->flags & REF_COW) ? rte_do_cow(r) : r; }

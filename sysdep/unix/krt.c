@@ -899,13 +899,19 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
 	   rte *new, rte *old, struct ea_list *eattrs)
 {
   struct krt_proto *p = (struct krt_proto *) P;
+  char* output = NULL;
   
   log_msg(L_DEBUG "Calling krt_notify");
-  log_msg(L_DEBUG "New route: %I", net->n.prefix);
-  log_msg(L_DEBUG "%-1I/%2d ", net->n.prefix, net->n.pxlen);
-  log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
-  if (new->attrs->dest == RTD_ROUTER)
-    log_msg(" ->%I", new->attrs->gw);
+  //log_msg(L_DEBUG "New route: %I", net->n.prefix);
+  //log_msg(L_DEBUG "%-1I/%2d ", net->n.prefix, net->n.pxlen);
+  //log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
+  //if (new->attrs->dest == RTD_ROUTER)
+  //  log_msg(" ->%I", new->attrs->gw);
+  
+  output = rte_json_dump(new);
+  log_msg(output);
+  free(output);
+  output = NULL;
 
   if (config->shutdown)
     return;

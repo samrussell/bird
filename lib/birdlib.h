@@ -66,6 +66,7 @@ void bug(char *msg, ...) NORET;
 #define L_BUG "\011"			/* BIRD bugs */
 
 void debug(char *msg, ...);		/* Printf to debug output */
+void sdebug(char *output, int len, char *msg, ...);		/* Sprintf version of debug() */
 
 /* Debugging */
 

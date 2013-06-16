@@ -292,6 +292,26 @@ debug(char *msg, ...)
   va_end(args);
 }
 
+/**
+ * sdebug - sprintf() version of debug()
+ * @output: pre-allocated char* for output
+ * @len: size of @output
+ * @msg: a printf-like message
+ *
+ * This function formats the message @msg and prints it
+ * out to @output. No newline character is appended.
+ */
+void
+sdebug(char *output, int len, char *msg, ...)
+{
+  va_list args;
+  
+  va_start(args, msg);
+  if (bvsnprintf(output, len, msg, args) < 0)
+	bsprintf(output + len - 100, " ... <too long>\n");
+  va_end(args);
+}
+
 static list *
 default_log_list(int debug, int init, char **syslog_name)
 {

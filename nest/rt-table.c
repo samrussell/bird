@@ -1090,6 +1090,43 @@ rte_dump(rte *e)
 }
 
 /**
+ * rte_json_dump - dump a route
+ * @e: &rte to be dumped
+ *
+ * This functions returns contents of a &rte as JSON
+ */
+char*
+rte_json_dump(rte *e)
+{
+  int len = 1024;
+  char *output = xmalloc(len);
+  net *n = e->net;
+  int buflen = 1024;
+  char *buf = xmalloc(buflen);
+  output[0] = 0;
+  buf[0] = 0;
+  sdebug(buf, buflen, "%-1I/%2d ", n->n.prefix, n->n.pxlen);
+  while(strlen(buf) >= len-2){
+	  len += 1024;
+	  output = xrealloc(output, len);
+  }
+  strcat(output, buf);
+  sdebug(buf, buflen, "KF=%02x PF=%02x pref=%d lm=%d ", n->n.flags, e->pflags, e->pref, now-e->lastmod);
+  while(strlen(buf) >= len-2){
+	  len += 1024;
+	  output = xrealloc(output, len);
+  }
+  strcat(output, buf);
+  //rta_dump(e->attrs);
+  //if (e->attrs->proto->proto->dump_attrs)
+  //  e->attrs->proto->proto->dump_attrs(e);
+  output[strlen(output)] = '\n';
+  output[strlen(output)] = 0;
+  free(buf);
+  return output;
+}
+
+/**
  * rt_dump - dump a routing table
  * @t: routing table to be dumped
  *
