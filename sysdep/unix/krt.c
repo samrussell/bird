@@ -904,6 +904,8 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
   log_msg(L_DEBUG "New route: %I", net->n.prefix);
   log_msg(L_DEBUG "%-1I/%2d ", net->n.prefix, net->n.pxlen);
   log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
+  if (new->attrs->dest == RTD_ROUTER)
+    log_msg(" ->%I", new->attrs->gw);
 
   if (config->shutdown)
     return;
