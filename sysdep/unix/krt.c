@@ -900,7 +900,8 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
 {
   struct krt_proto *p = (struct krt_proto *) P;
   
-  log_msg(L_DEBUG, "Calling krt_notify");
+  log_msg(L_DEBUG "Calling krt_notify");
+  log_msg(L_DEBUG "New route: %I", net->n.prefix);
 
   if (config->shutdown)
     return;
