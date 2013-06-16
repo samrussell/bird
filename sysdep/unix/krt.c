@@ -899,6 +899,8 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
 	   rte *new, rte *old, struct ea_list *eattrs)
 {
   struct krt_proto *p = (struct krt_proto *) P;
+  
+  log_msg(L_DEBUG, "Calling krt_notify");
 
   if (config->shutdown)
     return;
