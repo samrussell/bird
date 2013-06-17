@@ -91,8 +91,8 @@ sdn_import_control(struct proto *P, rte **ee, ea_list **ea UNUSED, struct linpoo
 {
   struct proto *pp = (*ee)->sender->proto;
 
-  if (pp == P)
-    return -1;	/* Avoid local loops automatically */
+  //if (pp == P)
+  //  return -1;	/* Avoid local loops automatically */
   return 0;
 }
 
@@ -123,7 +123,7 @@ sdn_init(struct proto_config *C)
   struct sdn_proto *p = (struct sdn_proto *) P;
 
   p->mode = c->mode;
-  p->peer_table = c->peer->table;
+  //p->peer_table = c->peer->table;
   P->accept_ra_types = (p->mode == SDN_OPAQUE) ? RA_OPTIMAL : RA_ANY;
   P->rt_notify = sdn_rt_notify;
   P->import_control = sdn_import_control;
@@ -140,7 +140,7 @@ sdn_start(struct proto *P)
 
   /* Lock both tables, unlock is handled in sdn_cleanup() */
   rt_lock_table(P->table);
-  rt_lock_table(p->peer_table);
+  //rt_lock_table(p->peer_table);
 
   /* Going directly to PS_UP - prepare for feeding,
      connect the protocol to both routing tables */
@@ -150,10 +150,10 @@ sdn_start(struct proto *P)
   P->main_ahook->in_limit = cf->c.in_limit;
   proto_reset_limit(P->main_ahook->in_limit);
 
-  p->peer_ahook = proto_add_announce_hook(P, p->peer_table, &p->peer_stats);
-  p->peer_ahook->out_filter = cf->c.in_filter;
-  p->peer_ahook->in_limit = cf->c.out_limit;
-  proto_reset_limit(p->peer_ahook->in_limit);
+  //p->peer_ahook = proto_add_announce_hook(P, p->peer_table, &p->peer_stats);
+  //p->peer_ahook->out_filter = cf->c.in_filter;
+  //p->peer_ahook->in_limit = cf->c.out_limit;
+  //proto_reset_limit(p->peer_ahook->in_limit);
 
   return PS_UP;
 }
@@ -164,10 +164,10 @@ sdn_cleanup(struct proto *P)
   struct sdn_proto *p = (struct sdn_proto *) P;
 
   bzero(&P->stats, sizeof(struct proto_stats));
-  bzero(&p->peer_stats, sizeof(struct proto_stats));
+  // bzero(&p->peer_stats, sizeof(struct proto_stats));
 
   P->main_ahook = NULL;
-  p->peer_ahook = NULL;
+  // p->peer_ahook = NULL;
 
   rt_unlock_table(P->table);
   rt_unlock_table(p->peer_table);
@@ -178,15 +178,16 @@ sdn_postconfig(struct proto_config *C)
 {
   struct sdn_config *c = (struct sdn_config *) C;
 
-  if (!c->peer)
+  // don't care about peer
+  /* if (!c->peer)
     cf_error("Name of peer routing table not specified");
   if (c->peer == C->table)
-    cf_error("Primary table and peer table must be different");
+    cf_error("Primary table and peer table must be different"); */
 
   if (C->in_keep_filtered)
-    cf_error("Pipe protocol prohibits keeping filtered routes");
+    cf_error("SDN protocol prohibits keeping filtered routes");
   if (C->rx_limit)
-    cf_error("Pipe protocol does not support receive limits");
+    cf_error("SDN protocol does not support receive limits");
 }
 
 extern int proto_reconfig_type;
@@ -199,8 +200,10 @@ sdn_reconfigure(struct proto *P, struct proto_config *new)
   struct sdn_config *oc = (struct sdn_config *) old;
   struct sdn_config *nc = (struct sdn_config *) new;
 
-  if ((oc->peer->table != nc->peer->table) || (oc->mode != nc->mode))
-    return 0;
+  // no idea what this does here - need to figure this out,
+  // probably pipe-specific
+  //if ((oc->peer->table != nc->peer->table) || (oc->mode != nc->mode))
+  //  return 0;
 
   /* Update output filters in ahooks */
   if (P->main_ahook)
@@ -238,37 +241,23 @@ sdn_get_status(struct proto *P, byte *buf)
 {
   struct sdn_proto *p = (struct sdn_proto *) P;
 
-  bsprintf(buf, "%c> %s", (p->mode == SDN_OPAQUE) ? '-' : '=', p->peer_table->name);
+  //bsprintf(buf, "%c> %s", (p->mode == SDN_OPAQUE) ? '-' : '=', p->peer_table->name);
+  bsprintf(buf, "dummy status output");
 }
 
 static void
 sdn_show_stats(struct sdn_proto *p)
 {
   struct proto_stats *s1 = &p->p.stats;
-  struct proto_stats *s2 = &p->peer_stats;
+  //struct proto_stats *s2 = &p->peer_stats;
 
   /*
-   * Pipe stats (as anything related to sdns) are a bit tricky. There
-   * are two sets of stats - s1 for ahook to the primary routing and
-   * s2 for the ahook to the secondary routing table. The user point
-   * of view is that routes going from the primary routing table to
-   * the secondary routing table are 'exported', while routes going in
-   * the other direction are 'imported'.
-   *
-   * Each route going through a sdn is, technically, first exported
-   * to the sdn and then imported from that sdn and such operations
-   * are counted in one set of stats according to the direction of the
-   * route propagation. Filtering is done just in the first part
-   * (export). Therefore, we compose stats for one directon for one
-   * user direction from both import and export stats, skipping
-   * immediate and irrelevant steps (exp_updates_accepted,
-   * imp_updates_received, imp_updates_filtered, ...).
-   *
-   * Rule of thumb is that stats s1 have the correct 'polarity'
-   * (imp/exp), while stats s2 have switched 'polarity'.
+   * This needs to be completely rethought - the SDN stats will be
+   * completely different to the pipe stats - maybe use the stats
+   * code from the kernel?
    */
 
-  cli_msg(-1006, "  Routes:         %u imported, %u exported", 
+  /*cli_msg(-1006, "  Routes:         %u imported, %u exported", 
 	  s1->imp_routes, s2->imp_routes);
   cli_msg(-1006, "  Route change stats:     received   rejected   filtered    ignored   accepted");
   cli_msg(-1006, "    Import updates:     %10u %10u %10u %10u %10u",
@@ -282,7 +271,8 @@ sdn_show_stats(struct sdn_proto *p)
 	  s1->exp_updates_filtered, s2->imp_updates_ignored, s2->imp_updates_accepted);
   cli_msg(-1006, "    Export withdraws:   %10u %10u        --- %10u %10u",
 	  s1->exp_withdraws_received, s2->imp_withdraws_invalid,
-	  s2->imp_withdraws_ignored, s2->imp_withdraws_accepted);
+	  s2->imp_withdraws_ignored, s2->imp_withdraws_accepted);*/
+  cli_msg(-1006, "    Needs refactoring - this code all stolen from Pipe");
 }
 
 static void
@@ -306,14 +296,14 @@ sdn_show_proto_info(struct proto *P)
 
 
 struct protocol proto_sdn = {
-  name:			"Pipe",
+  name:			"SDN",
   template:		"sdn%d",
   multitable:		1,
   preference:		DEF_PREF_SDN,
   postconfig:		sdn_postconfig,
-  init:			sdn_init,
-  start:		sdn_start,
-  cleanup:		sdn_cleanup,
+  init:			    sdn_init,
+  start:		    sdn_start,
+  cleanup:		    sdn_cleanup,
   reconfigure:		sdn_reconfigure,
   copy_config:  	sdn_copy_config,
   get_status:		sdn_get_status,

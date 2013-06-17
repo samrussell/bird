@@ -477,6 +477,7 @@ extern struct protocol *attr_class_to_protocol[EAP_MAX];
 #define DEF_PREF_BGP		100	/* BGP */
 #define DEF_PREF_PIPE		70	/* Routes piped from other tables */
 #define DEF_PREF_INHERITED	10	/* Routes inherited from other routing daemons */
+#define DEF_PREF_SDN	    5	/* SDN routes - make them last-choice unless set otherwise */
 
 
 /*
