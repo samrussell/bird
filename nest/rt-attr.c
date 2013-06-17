@@ -876,21 +876,21 @@ rta_json_dump(rta *a)
   strcat(output, buf);
   if (!(a->aflags & RTAF_CACHED)){
     sdebug(buf, buflen, " !CACHED");
-    while(strlen(buf) >= len-2){
+    while(strlen(buf)+strlen(output) >= len-2){
 	  len += 1024;
 	  output = xrealloc(output, len);
     }
     strcat(output, buf);
   }
   sdebug(buf, buflen, " <-%I", a->from);
-  while(strlen(buf) >= len-2){
+  while(strlen(buf)+strlen(output) >= len-2){
 	  len += 1024;
 	  output = xrealloc(output, len);
   }
   strcat(output, buf);
   if (a->dest == RTD_ROUTER){
     sdebug(buf, buflen, " ->%I", a->gw);
-    while(strlen(buf) >= len-2){
+    while(strlen(buf)+strlen(output) >= len-2){
       len += 1024;
 	  output = xrealloc(output, len);
     }
@@ -898,7 +898,7 @@ rta_json_dump(rta *a)
   }
   if (a->dest == RTD_DEVICE || a->dest == RTD_ROUTER){
     sdebug(buf, buflen, " [%s]", a->iface ? a->iface->name : "???" );
-	while(strlen(buf) >= len-2){
+	while(strlen(buf)+strlen(output) >= len-2){
 	  len += 1024;
 	  output = xrealloc(output, len);
     }
@@ -907,7 +907,7 @@ rta_json_dump(rta *a)
   if (a->eattrs)
     {
       sdebug(buf, buflen, " EA: ");
-	  while(strlen(buf) >= len-2){
+	  while(strlen(buf)+strlen(output) >= len-2){
 		  len += 1024;
 		  output = xrealloc(output, len);
 	  }

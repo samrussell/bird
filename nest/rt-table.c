@@ -1112,17 +1112,24 @@ rte_json_dump(rte *e)
   }
   strcat(output, buf);
   sdebug(buf, buflen, "KF=%02x PF=%02x pref=%d lm=%d ", n->n.flags, e->pflags, e->pref, now-e->lastmod);
-  while(strlen(buf) >= len-2){
+  while(strlen(buf)+strlen(output) >= len-2){
 	  len += 1024;
 	  output = xrealloc(output, len);
   }
   strcat(output, buf);
-  //rta_dump(e->attrs);
+  free(buf);
+  
+  buf = rta_json_dump(e->attrs);
+  while(strlen(buf)+strlen(output) >= len-2){
+	  len += 1024;
+	  output = xrealloc(output, len);
+  }
+  strcat(output, buf);
+  free(buf);
   //if (e->attrs->proto->proto->dump_attrs)
   //  e->attrs->proto->proto->dump_attrs(e);
   output[strlen(output)] = '\n';
   output[strlen(output)] = 0;
-  free(buf);
   return output;
 }
 
