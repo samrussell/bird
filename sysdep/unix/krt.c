@@ -342,6 +342,15 @@ krt_learn_announce_update(struct krt_proto *p, rte *e)
   rta *aa = rta_clone(e->attrs);
   rte *ee = rte_get_temp(aa);
   net *nn = net_get(p->p.table, n->n.prefix, n->n.pxlen);
+  
+  char* output = NULL;
+  
+  log_msg(L_DEBUG "Calling krt_learn_announce_update");
+  output = rte_json_dump(e);
+  log_msg(output);
+  free(output);
+  output = NULL;
+  
   ee->net = nn;
   ee->pflags = 0;
   ee->pref = p->p.preference;
@@ -352,6 +361,10 @@ krt_learn_announce_update(struct krt_proto *p, rte *e)
 static void
 krt_learn_announce_delete(struct krt_proto *p, net *n)
 {
+  char* output = NULL;
+  
+  log_msg(L_DEBUG "Calling krt_learn_announce_delete for route %I/%d", n->n.prefix, n->n.pxlen);
+  
   n = net_find(p->p.table, n->n.prefix, n->n.pxlen);
   if (n)
     rte_update(p->p.table, n, &p->p, &p->p, NULL);
