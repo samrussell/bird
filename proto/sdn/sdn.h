@@ -23,7 +23,14 @@ struct sdn_proto {
   //struct rtable *peer_table;
   //struct announce_hook *peer_ahook;	/* Announce hook for direction peer->primary */
   //struct proto_stats peer_stats;	/* Statistics for the direction peer->primary */
+  struct fib rtable;
   int mode;				/* SDN_OPAQUE or SDN_TRANSPARENT */
+};
+
+struct sdn_entry {
+	struct fib_node n;
+	
+	// add misc stuff later
 };
 
 

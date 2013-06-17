@@ -29,14 +29,20 @@ static void
 sdn_rt_notify(struct proto *P, rtable *src_table, net *n, rte *new, rte *old, ea_list *attrs)
 {
   struct sdn_proto *p = (struct sdn_proto *) P;
-  struct announce_hook *ah = (src_table == P->table) ? p->peer_ahook : P->main_ahook;
-  rtable *dst_table = ah->table;
+  //struct announce_hook *ah = (src_table == P->table) ? p->peer_ahook : P->main_ahook;
+  //rtable *dst_table = ah->table;
   struct proto *src;
 
   net *nn;
   rte *e;
   rta a;
+  
+  // none of the code from pipe makes sense
+  // going to try and build this from the RIP code
+  
 
+  /*
+  
   if (!new && !old)
     return;
 
@@ -64,10 +70,11 @@ sdn_rt_notify(struct proto *P, rtable *src_table, net *n, rte *new, rte *old, ea
       e = rte_get_temp(&a);
       e->net = nn;
       e->pflags = 0;
+  
 
       if (p->mode == SDN_TRANSPARENT)
 	{
-	  /* Copy protocol specific embedded attributes. */
+	  
 	  memcpy(&(e->u), &(new->u), sizeof(e->u));
 	  e->pref = new->pref;
 	  e->pflags = new->pflags;
@@ -84,6 +91,7 @@ sdn_rt_notify(struct proto *P, rtable *src_table, net *n, rte *new, rte *old, ea
   src_table->sdn_busy = 1;
   rte_update2(ah, nn, e, (p->mode == SDN_OPAQUE) ? &p->p : src);
   src_table->sdn_busy = 0;
+  */
 }
 
 static int
@@ -109,8 +117,8 @@ sdn_reload_routes(struct proto *P)
    */
   proto_request_feeding(P);
 
-  proto_reset_limit(P->main_ahook->in_limit);
-  proto_reset_limit(p->peer_ahook->in_limit);
+  //proto_reset_limit(P->main_ahook->in_limit);
+  //proto_reset_limit(p->peer_ahook->in_limit);
 
   return 1;
 }
@@ -124,7 +132,7 @@ sdn_init(struct proto_config *C)
 
   p->mode = c->mode;
   //p->peer_table = c->peer->table;
-  P->accept_ra_types = (p->mode == SDN_OPAQUE) ? RA_OPTIMAL : RA_ANY;
+  P->accept_ra_types = RA_ANY;
   P->rt_notify = sdn_rt_notify;
   P->import_control = sdn_import_control;
   P->reload_routes = sdn_reload_routes;
@@ -137,18 +145,20 @@ sdn_start(struct proto *P)
 {
   struct sdn_config *cf = (struct sdn_config *) P->cf;
   struct sdn_proto *p = (struct sdn_proto *) P;
+  
+  fib_init(&p->rtable, )
 
   /* Lock both tables, unlock is handled in sdn_cleanup() */
-  rt_lock_table(P->table);
+  //rt_lock_table(P->table);
   //rt_lock_table(p->peer_table);
 
   /* Going directly to PS_UP - prepare for feeding,
      connect the protocol to both routing tables */
 
-  P->main_ahook = proto_add_announce_hook(P, P->table, &P->stats);
-  P->main_ahook->out_filter = cf->c.out_filter;
-  P->main_ahook->in_limit = cf->c.in_limit;
-  proto_reset_limit(P->main_ahook->in_limit);
+  //P->main_ahook = proto_add_announce_hook(P, P->table, &P->stats);
+  //P->main_ahook->out_filter = cf->c.out_filter;
+  //P->main_ahook->in_limit = cf->c.in_limit;
+  //proto_reset_limit(P->main_ahook->in_limit);
 
   //p->peer_ahook = proto_add_announce_hook(P, p->peer_table, &p->peer_stats);
   //p->peer_ahook->out_filter = cf->c.in_filter;
