@@ -42,6 +42,7 @@
 #undef CONFIG_BGP
 #undef CONFIG_OSPF
 #undef CONFIG_PIPE
+#undef CONFIG_SDN
 
 /* We have <syslog.h> and syslog() */
 #undef HAVE_SYSLOG
