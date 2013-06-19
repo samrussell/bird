@@ -73,11 +73,6 @@ sdn_start(struct proto *p)
   init_list( &P->connections );
   init_list( &P->garbage );
   init_list( &P->interfaces );
-  P->timer = tm_new( p->pool );
-  P->timer->data = p;
-  P->timer->recurrent = 1;
-  P->timer->hook = sdn_timer;
-  tm_start( P->timer, 2 );
   rif = new_iface(p, NULL, 0, NULL);	/* Initialize dummy interface */
   add_head( &P->interfaces, NODE rif );
   CHK_MAGIC;
@@ -152,92 +147,7 @@ kill_iface(struct sdn_interface *i)
 static struct sdn_interface *
 new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt )
 {
-  struct sdn_interface *rif;
-  struct sdn_patt *PATT = (struct sdn_patt *) patt;
-
-  rif = mb_allocz(p->pool, sizeof( struct sdn_interface ));
-  rif->iface = new;
-  rif->proto = p;
-  rif->busy = NULL;
-  if (PATT) {
-    rif->mode = PATT->mode;
-    rif->metric = PATT->metric;
-    rif->multicast = (!(PATT->mode & IM_BROADCAST)) && (flags & IF_MULTICAST);
-  }
-  /* lookup multicasts over unnumbered links - no: sdn is not defined over unnumbered links */
-
-  if (rif->multicast)
-    DBG( "Doing multicasts!\n" );
-
-  rif->sock = sk_new( p->pool );
-  rif->sock->type = SK_UDP;
-  rif->sock->sport = P_CF->port;
-  rif->sock->rx_hook = sdn_rx;
-  rif->sock->data = rif;
-  rif->sock->rbsize = 10240;
-  rif->sock->iface = new;		/* Automagically works for dummy interface */
-  rif->sock->tbuf = mb_alloc( p->pool, sizeof( struct sdn_packet ));
-  rif->sock->tx_hook = sdn_tx;
-  rif->sock->err_hook = sdn_tx_err;
-  rif->sock->daddr = IPA_NONE;
-  rif->sock->dport = P_CF->port;
-  if (new)
-    {
-      rif->sock->ttl = 1;
-      rif->sock->tos = IP_PREC_INTERNET_CONTROL;
-      rif->sock->flags = SKF_LADDR_RX;
-    }
-
-  if (new) {
-    if (new->addr->flags & IA_PEER)
-      log( L_WARN "%s: sdn is not defined over unnumbered links", p->name );
-    rif->sock->saddr = IPA_NONE;
-    if (rif->multicast) {
-#ifndef IPV6
-      rif->sock->daddr = ipa_from_u32(0xe0000009);
-#else
-      rif->sock->daddr = ipa_build(0xff020000, 0, 0, 9);
-#endif
-    } else {
-      rif->sock->daddr = new->addr->brd;
-    }
-  }
-
-  if (!ipa_nonzero(rif->sock->daddr)) {
-    if (rif->iface)
-      log( L_WARN "%s: interface %s is too strange for me", p->name, rif->iface->name );
-  } else {
-
-    if (sk_open(rif->sock)<0)
-      goto err;
-
-    if (rif->multicast)
-      {
-	if (sk_setup_multicast(rif->sock) < 0)
-	  goto err;
-	if (sk_join_group(rif->sock, rif->sock->daddr) < 0)
-	  goto err;
-      }
-    else
-      {
-	if (sk_set_broadcast(rif->sock, 1) < 0)
-	  goto err;
-      }
-  }
-
-  TRACE(D_EVENTS, "Listening on %s, port %d, mode %s (%I)", rif->iface ? rif->iface->name : "(dummy)", P_CF->port, rif->multicast ? "multicast" : "broadcast", rif->sock->daddr );
-  
-  return rif;
-
- err:
-  log( L_ERR "%s: could not create socket for %s", p->name, rif->iface ? rif->iface->name : "(dummy)" );
-  if (rif->iface) {
-    rfree(rif->sock);
-    mb_free(rif);
-    return NULL;
-  }
-  /* On dummy, we just return non-working socket, so that user gets error every time anyone requests table */
-  return rif;
+  return NULL
 }
 
 static void
