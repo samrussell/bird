@@ -147,7 +147,7 @@ kill_iface(struct sdn_interface *i)
 static struct sdn_interface *
 new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt )
 {
-  return NULL
+  return NULL;
 }
 
 static void
