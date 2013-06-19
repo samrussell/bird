@@ -13,21 +13,21 @@
 #include "nest/password.h"
 #include "nest/locks.h"
 
-#define EA_RIP_TAG	EA_CODE(EAP_RIP, 0)
-#define EA_RIP_METRIC	EA_CODE(EAP_RIP, 1)
+#define EA_SDN_TAG	EA_CODE(EAP_SDN, 0)
+#define EA_SDN_METRIC	EA_CODE(EAP_SDN, 1)
 
 #define PACKET_MAX	25
 #define PACKET_MD5_MAX	18	/* FIXME */
 
 
-#define RIP_V1		1
-#define RIP_V2		2
-#define RIP_NG		1	/* A new version numbering */
+#define SDN_V1		1
+#define SDN_V2		2
+#define SDN_NG		1	/* A new version numbering */
 
 #ifndef IPV6
-#define RIP_PORT	520	/* RIP for IPv4 */
+#define SDN_PORT	520	/* SDN for IPv4 */
 #else
-#define RIP_PORT	521	/* RIPng */
+#define SDN_PORT	521	/* SDNng */
 #endif
 
 struct sdn_connection {
@@ -47,15 +47,15 @@ struct sdn_connection {
 
 struct sdn_packet_heading {		/* 4 bytes */
   u8 command;
-#define RIPCMD_REQUEST          1       /* want info */
-#define RIPCMD_RESPONSE         2       /* responding to request */
-#define RIPCMD_TRACEON          3       /* turn tracing on */
-#define RIPCMD_TRACEOFF         4       /* turn it off */
-#define RIPCMD_MAX              5
+#define SDNCMD_REQUEST          1       /* want info */
+#define SDNCMD_RESPONSE         2       /* responding to request */
+#define SDNCMD_TRACEON          3       /* turn tracing on */
+#define SDNCMD_TRACEOFF         4       /* turn it off */
+#define SDNCMD_MAX              5
   u8 version;
-#define RIP_V1			1
-#define RIP_V2			2
-#define RIP_NG 			1	/* this is verion 1 of RIPng */
+#define SDN_V1			1
+#define SDN_V2			2
+#define SDN_NG 			1	/* this is verion 1 of SDNng */
   u16 unused;
 };
 
@@ -171,8 +171,8 @@ struct sdn_proto {
 };
 
 #ifdef LOCAL_DEBUG
-#define RIP_MAGIC 81861253
-#define CHK_MAGIC do { if (P->magic != RIP_MAGIC) bug( "Not enough magic" ); } while (0)
+#define SDN_MAGIC 81861253
+#define CHK_MAGIC do { if (P->magic != SDN_MAGIC) bug( "Not enough magic" ); } while (0)
 #else
 #define CHK_MAGIC do { } while (0)
 #endif
