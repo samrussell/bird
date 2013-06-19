@@ -241,62 +241,9 @@ new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_
 }
 
 static void
-sdn_real_if_add(struct object_lock *lock)
-{
-  struct iface *iface = lock->iface;
-  struct proto *p = lock->data;
-  struct sdn_interface *rif;
-  struct iface_patt *k = iface_patt_find(&P_CF->iface_list, iface, iface->addr);
-
-  if (!k)
-    bug("This can not happen! It existed few seconds ago!" );
-  DBG("adding interface %s\n", iface->name );
-  rif = new_iface(p, iface, iface->flags, k);
-  if (rif) {
-    add_head( &P->interfaces, NODE rif );
-    DBG("Adding object lock of %p for %p\n", lock, rif);
-    rif->lock = lock;
-  } else { rfree(lock); }
-}
-
-static void
 sdn_if_notify(struct proto *p, unsigned c, struct iface *iface)
 {
   DBG( "sdn: if notify\n" );
-  if (iface->flags & IF_IGNORE)
-    return;
-  if (c & IF_CHANGE_DOWN) {
-    struct sdn_interface *i;
-    i = find_interface(p, iface);
-    if (i) {
-      rem_node(NODE i);
-      rfree(i->lock);
-      kill_iface(i);
-    }
-  }
-  if (c & IF_CHANGE_UP) {
-    struct iface_patt *k = iface_patt_find(&P_CF->iface_list, iface, iface->addr);
-    struct object_lock *lock;
-    struct sdn_patt *PATT = (struct sdn_patt *) k;
-
-    if (!k) return; /* We are not interested in this interface */
-
-    lock = olock_new( p->pool );
-    if (!(PATT->mode & IM_BROADCAST) && (iface->flags & IF_MULTICAST))
-#ifndef IPV6
-      lock->addr = ipa_from_u32(0xe0000009);
-#else
-      ip_pton("FF02::9", &lock->addr);
-#endif
-    else
-      lock->addr = iface->addr->brd;
-    lock->port = P_CF->port;
-    lock->iface = iface;
-    lock->hook = sdn_real_if_add;
-    lock->data = p;
-    lock->type = OBJLOCK_UDP;
-    olock_acquire(lock);
-  }
 }
 
 static struct ea_list *
