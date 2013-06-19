@@ -185,3 +185,5 @@ void sdn_init_config(struct sdn_proto_config *c);
 
 int sdn_incoming_authentication( struct proto *p, struct sdn_block_auth *block, struct sdn_packet *packet, int num, ip_addr whotoldme );
 int sdn_outgoing_authentication( struct proto *p, struct sdn_block_auth *block, struct sdn_packet *packet, int num );
+
+#endif
