@@ -198,6 +198,15 @@ typedef struct rte {
       struct rip_entry *entry;
     } rip;
 #endif
+/* made up one for SDN just to make it compile */
+#ifdef CONFIG_SDN
+    struct {
+      node garbage;			/* List for garbage collection */
+      byte metric;			/* RIP metric */
+      u16 tag;				/* External route tag */
+      struct rip_entry *entry;
+    } sdn;
+#endif
 #ifdef CONFIG_OSPF
     struct {
       u32 metric1, metric2;		/* OSPF Type 1 and Type 2 metrics */
