@@ -26,8 +26,6 @@ CF_DECLS
 
 CF_KEYWORDS(SDN)
 
-%type <i> sdn_mode sdn_auth
-
 CF_GRAMMAR
 
 CF_ADDTO(proto, sdn_cfg '}' { SDN_CFG->passwords = get_passwords(); } )
