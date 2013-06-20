@@ -20,7 +20,6 @@ CF_HDR
 CF_DEFINES
 
 #define SDN_CFG ((struct sdn_proto_config *) this_proto)
-#define SDN_IPATT ((struct sdn_patt *) this_ipatt)
 
 CF_DECLS
 
@@ -28,7 +27,7 @@ CF_KEYWORDS(SDN)
 
 CF_GRAMMAR
 
-CF_ADDTO(proto, sdn_cfg '}' { SDN_CFG->passwords = get_passwords(); } )
+CF_ADDTO(proto, sdn_cfg '}')
 
 sdn_cfg_start: proto_start SDN {
      this_proto = proto_config_new(&proto_sdn, sizeof(struct sdn_proto_config), $1);
@@ -38,7 +37,7 @@ sdn_cfg_start: proto_start SDN {
 
 sdn_cfg:
    sdn_cfg_start proto_name '{'
- | sdn_cfg proto_item ';'
+ /*| sdn_cfg proto_item ';'*/
  ;
 
 CF_CODE
