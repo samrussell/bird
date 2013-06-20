@@ -69,17 +69,19 @@ sdn_start(struct proto *p)
 #ifdef LOCAL_DEBUG
   P->magic = SDN_MAGIC;
 #endif
+
   fib_init( &P->rtable, p->pool, sizeof( struct sdn_entry ), 0, NULL );
   init_list( &P->connections );
   init_list( &P->garbage );
   init_list( &P->interfaces );
-  rif = new_iface(p, NULL, 0, NULL);	/* Initialize dummy interface */
-  add_head( &P->interfaces, NODE rif );
+  //DBG( "sdn: initialised lists\n" );
+  //rif = new_iface(p, NULL, 0, NULL);	/* Initialize dummy interface */
+  //add_head( &P->interfaces, NODE rif );
   CHK_MAGIC;
-
+  
   sdn_init_instance(p);
 
-  DBG( "sdn: ...done\n");
+  DBG( "sdn: ...done\n" );
   return PS_UP;
 }
 

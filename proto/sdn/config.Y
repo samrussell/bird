@@ -37,7 +37,7 @@ sdn_cfg_start: proto_start SDN {
 
 sdn_cfg:
    sdn_cfg_start proto_name '{'
- /*| sdn_cfg proto_item ';'*/
+ | sdn_cfg proto_item ';'
  ;
 
 CF_CODE
