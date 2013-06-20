@@ -1,16 +1,10 @@
 /*
  *	BIRD -- SDN Configuration
  *
+ *	(c) 2013 Sam Russell <sam.h.russell@gmail.com>
+ * 
  *	Can be freely distributed and used under the terms of the GNU GPL.
  */
-
-/*
-To add:
-
-version1 switch
-
-*/
-
 
 CF_HDR
 

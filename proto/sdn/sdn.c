@@ -62,10 +62,6 @@ sdn_start(struct proto *p)
   struct sdn_interface *rif;
   DBG( "sdn: starting instance...\n" );
 
-  ASSERT(sizeof(struct sdn_packet_heading) == 4);
-  ASSERT(sizeof(struct sdn_block) == 20);
-  ASSERT(sizeof(struct sdn_block_auth) == 20);
-
 #ifdef LOCAL_DEBUG
   P->magic = SDN_MAGIC;
 #endif
@@ -187,6 +183,8 @@ sdn_import_control(struct proto *p, struct rte **rt, struct ea_list **attrs, str
     struct ea_list *new = sdn_gen_attrs(pool, 1, 0);
     new->next = *attrs;
     *attrs = new;
+	// say yes for giggles
+	return 1;
   }
   return 0;
 }
@@ -311,7 +309,7 @@ sdn_rte_remove(net *net UNUSED, rte *rte)
 void
 sdn_init_instance(struct proto *p)
 {
-  p->accept_ra_types = RA_OPTIMAL;
+  p->accept_ra_types = RA_ANY;
   p->if_notify = sdn_if_notify;
   p->rt_notify = sdn_rt_notify;
   p->import_control = sdn_import_control;
