@@ -718,6 +718,9 @@ protos_build(void)
 #ifdef CONFIG_BGP
   proto_build(&proto_bgp);
 #endif
+#ifdef CONFIG_SDN
+  proto_build(&proto_sdn);
+#endif
   proto_pool = rp_new(&root_pool, "Protocols");
   proto_flush_event = ev_new(proto_pool);
   proto_flush_event->hook = proto_flush_loop;
