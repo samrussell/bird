@@ -218,9 +218,9 @@ sdn_rt_notify(struct proto *p, struct rtable *table UNUSED, struct network *net,
   log_msg(L_DEBUG "%-1I/%2d ", net->n.prefix, net->n.pxlen);
   if(new){
     log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
+    if (new->attrs->dest == RTD_ROUTER)
+      log_msg(" ->%I", new->attrs->gw);
   }
-  if (new->attrs->dest == RTD_ROUTER)
-    log_msg(" ->%I", new->attrs->gw);
 
   e = fib_find( &P->rtable, &net->n.prefix, net->n.pxlen );
   if (e)
