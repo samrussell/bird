@@ -9,7 +9,7 @@
 /**
  * DOC: SDN
  *
- * The SDN protocol 
+ * The SDN protocol
  */
 
 #undef LOCAL_DEBUG
@@ -37,7 +37,7 @@ static struct sdn_interface *new_iface(struct proto *p, struct iface *new, unsig
 /*
  * Input processing
  *
- * This part is responsible for any updates that come from network 
+ * This part is responsible for any updates that come from network
  */
 
 
@@ -48,7 +48,7 @@ static struct sdn_interface *new_iface(struct proto *p, struct iface *new, unsig
 static void
 sdn_dump_entry( struct sdn_entry *e )
 {
-  debug( "%I told me %d/%d ago: to %I/%d go via %I, metric %d ", 
+  debug( "%I told me %d/%d ago: to %I/%d go via %I, metric %d ",
   e->whotoldme, e->updated-now, e->changed-now, e->n.prefix, e->n.pxlen, e->nexthop, e->metric );
   debug( "\n" );
 }
@@ -74,7 +74,7 @@ sdn_start(struct proto *p)
   //rif = new_iface(p, NULL, 0, NULL);	/* Initialize dummy interface */
   //add_head( &P->interfaces, NODE rif );
   CHK_MAGIC;
-  
+
   sdn_init_instance(p);
 
   DBG( "sdn: ...done\n" );
@@ -195,7 +195,7 @@ sdn_make_tmp_attrs(struct rte *rt, struct linpool *pool)
   return sdn_gen_attrs(pool, rt->u.sdn.metric, rt->u.sdn.tag);
 }
 
-static void 
+static void
 sdn_store_tmp_attrs(struct rte *rt, struct ea_list *attrs)
 {
   rt->u.sdn.tag = ea_get_int(attrs, EA_SDN_TAG, 0);
@@ -204,7 +204,7 @@ sdn_store_tmp_attrs(struct rte *rt, struct ea_list *attrs)
 
 /*
  * sdn_rt_notify - core tells us about new route (possibly our
- * own), so store it into our data structures. 
+ * own), so store it into our data structures.
  */
 static void
 sdn_rt_notify(struct proto *p, struct rtable *table UNUSED, struct network *net,
@@ -212,11 +212,13 @@ sdn_rt_notify(struct proto *p, struct rtable *table UNUSED, struct network *net,
 {
   CHK_MAGIC;
   struct sdn_entry *e;
-  
+
   log_msg(L_DEBUG "Calling sdn_rt_notify");
   log_msg(L_DEBUG "New route: %I", net->n.prefix);
   log_msg(L_DEBUG "%-1I/%2d ", net->n.prefix, net->n.pxlen);
-  log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
+  if(new){
+    log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
+  }
   if (new->attrs->dest == RTD_ROUTER)
     log_msg(" ->%I", new->attrs->gw);
 
