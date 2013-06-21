@@ -36,7 +36,7 @@
  * only once for all the instances.
  *
  * The code uses OS-dependent parts for kernel updates and scans. These parts are
- * in more specific sysdep directories (e.g. sysdep/linux) in functions krt_sys_* 
+ * in more specific sysdep directories (e.g. sysdep/linux) in functions krt_sys_*
  * and kif_sys_* (and some others like krt_replace_rte()) and krt-sys.h header file.
  * This is also used for platform specific protocol options and route attributes.
  *
@@ -115,7 +115,7 @@ kif_request_scan(void)
 
 static inline int
 prefer_addr(struct ifa *a, struct ifa *b)
-{ 
+{
   int sa = a->scope > SCOPE_LINK;
   int sb = b->scope > SCOPE_LINK;
 
@@ -342,15 +342,15 @@ krt_learn_announce_update(struct krt_proto *p, rte *e)
   rta *aa = rta_clone(e->attrs);
   rte *ee = rte_get_temp(aa);
   net *nn = net_get(p->p.table, n->n.prefix, n->n.pxlen);
-  
+
   char* output = NULL;
-  
+
   log_msg(L_DEBUG "Calling krt_learn_announce_update");
   output = rte_json_dump(e);
   log_msg(output);
   free(output);
   output = NULL;
-  
+
   ee->net = nn;
   ee->pflags = 0;
   ee->pref = p->p.preference;
@@ -362,9 +362,9 @@ static void
 krt_learn_announce_delete(struct krt_proto *p, net *n)
 {
   char* output = NULL;
-  
+
   log_msg(L_DEBUG "Calling krt_learn_announce_delete for route %I/%d", n->n.prefix, n->n.pxlen);
-  
+
   n = net_find(p->p.table, n->n.prefix, n->n.pxlen);
   if (n)
     rte_update(p->p.table, n, &p->p, &p->p, NULL);
@@ -745,7 +745,7 @@ krt_prune(struct krt_proto *p)
 	  if (! krt_export_rte(p, &new, &tmpa))
 	    {
 	      /* Route rejected, should not happen (KRF_INSTALLED) but to be sure .. */
-	      verdict = (verdict == KRF_CREATE) ? KRF_IGNORE : KRF_DELETE; 
+	      verdict = (verdict == KRF_CREATE) ? KRF_IGNORE : KRF_DELETE;
 	    }
 	}
 
@@ -896,8 +896,8 @@ krt_import_control(struct proto *P, rte **new, ea_list **attrs, struct linpool *
   if (e->attrs->proto == P)
     return -1;
 
-  if (!KRT_CF->devroutes && 
-      (e->attrs->dest == RTD_DEVICE) && 
+  if (!KRT_CF->devroutes &&
+      (e->attrs->dest == RTD_DEVICE) &&
       (e->attrs->source != RTS_STATIC_DEVICE))
     return -1;
 
@@ -913,18 +913,20 @@ krt_notify(struct proto *P, struct rtable *table UNUSED, net *net,
 {
   struct krt_proto *p = (struct krt_proto *) P;
   char* output = NULL;
-  
+
   log_msg(L_DEBUG "Calling krt_notify");
   //log_msg(L_DEBUG "New route: %I", net->n.prefix);
   //log_msg(L_DEBUG "%-1I/%2d ", net->n.prefix, net->n.pxlen);
   //log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
   //if (new->attrs->dest == RTD_ROUTER)
   //  log_msg(" ->%I", new->attrs->gw);
-  
-  output = rte_json_dump(new);
-  log_msg(output);
-  free(output);
-  output = NULL;
+
+  if(new){
+    output = rte_json_dump(new);
+    log_msg(output);
+    free(output);
+    output = NULL;
+  }
 
   if (config->shutdown)
     return;
