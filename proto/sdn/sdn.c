@@ -208,7 +208,7 @@ sdn_store_tmp_attrs(struct rte *rt, struct ea_list *attrs)
  */
 static void
 sdn_rt_notify(struct proto *p, struct rtable *table UNUSED, struct network *net,
-	      struct rte *new, struct rte *old UNUSED, struct ea_list *attrs)
+	      struct rte *new, struct rte *old, struct ea_list *attrs)
 {
   CHK_MAGIC;
   struct sdn_entry *e;
@@ -223,6 +223,11 @@ sdn_rt_notify(struct proto *p, struct rtable *table UNUSED, struct network *net,
   }
   else{
     log_msg(L_DEBUG "Removing route: %-1I/%2d ", net->n.prefix, net->n.pxlen);
+    if(old){
+      log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, old->pflags, old->pref);
+      if (old->attrs->dest == RTD_ROUTER)
+        log_msg(" ->%I", old->attrs->gw);
+    }
   }
 
   e = fib_find( &P->rtable, &net->n.prefix, net->n.pxlen );
