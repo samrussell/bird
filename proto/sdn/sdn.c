@@ -145,7 +145,54 @@ kill_iface(struct sdn_interface *i)
 static struct sdn_interface *
 new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt )
 {
-  return NULL;
+  struct rip_interface *rif;
+  struct rip_patt *PATT = (struct rip_patt *) patt;
+
+  rif = mb_allocz(p->pool, sizeof( struct rip_interface ));
+  rif->iface = new;
+  rif->proto = p;
+  rif->busy = NULL;
+  if (PATT) {
+    rif->mode = PATT->mode;
+    rif->metric = PATT->metric;
+    rif->multicast = (!(PATT->mode & IM_BROADCAST)) && (flags & IF_MULTICAST);
+  }
+
+  if (rif->multicast)
+    DBG( "Doing multicasts!\n" );
+
+  rif->sock = sk_new( p->pool );
+  rif->sock->type = SK_UDP;
+  rif->sock->sport = P_CF->port;
+  rif->sock->rx_hook = sdn_rx;
+  rif->sock->data = rif;
+  rif->sock->rbsize = 10240;
+  rif->sock->iface = new;		/* Automagically works for dummy interface */
+  rif->sock->tbuf = mb_alloc( p->pool, sizeof( struct sdn_packet ));
+  rif->sock->tx_hook = sdn_tx;
+  rif->sock->err_hook = sdn_tx_err;
+  rif->sock->daddr = IPA_NONE;
+  rif->sock->dport = P_CF->port;
+  if (new)
+    {
+      rif->sock->ttl = 1;
+      rif->sock->tos = IP_PREC_INTERNET_CONTROL;
+      rif->sock->flags = SKF_LADDR_RX;
+    }
+
+  if (new) {
+    if (new->addr->flags & IA_PEER)
+      log( L_WARN "%s: rip is not defined over unnumbered links", p->name );
+    rif->sock->saddr = IPA_NONE;
+    if (rif->multicast) {
+#ifndef IPV6
+      rif->sock->daddr = ipa_from_u32(0xe0000009);
+#else
+      rif->sock->daddr = ipa_build(0xff020000, 0, 0, 9);
+#endif
+    } else {
+      rif->sock->daddr = new->addr->brd;
+    }
 }
 
 static void
