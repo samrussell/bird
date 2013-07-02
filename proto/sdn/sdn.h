@@ -25,9 +25,9 @@
 #define SDN_NG		1	/* A new version numbering */
 
 #ifndef IPV6
-#define SDN_PORT	520	/* SDN for IPv4 */
+#define SDN_PORT	55392	/* SDN for IPv4 */
 #else
-#define SDN_PORT	521	/* SDNng */
+#define SDN_PORT	55392	/* SDNng */
 #endif
 
 struct sdn_connection {
