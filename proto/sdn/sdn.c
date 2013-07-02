@@ -193,6 +193,7 @@ new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_
     } else {
       rif->sock->daddr = new->addr->brd;
     }
+  }
 }
 
 static void
