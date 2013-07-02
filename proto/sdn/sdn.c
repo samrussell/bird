@@ -145,10 +145,10 @@ kill_iface(struct sdn_interface *i)
 static struct sdn_interface *
 new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt )
 {
-  struct rip_interface *rif;
-  struct rip_patt *PATT = (struct rip_patt *) patt;
+  struct sdn_interface *rif;
+  struct sdn_patt *PATT = (struct sdn_patt *) patt;
 
-  rif = mb_allocz(p->pool, sizeof( struct rip_interface ));
+  rif = mb_allocz(p->pool, sizeof( struct sdn_interface ));
   rif->iface = new;
   rif->proto = p;
   rif->busy = NULL;
@@ -182,7 +182,7 @@ new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_
 
   if (new) {
     if (new->addr->flags & IA_PEER)
-      log( L_WARN "%s: rip is not defined over unnumbered links", p->name );
+      log( L_WARN "%s: sdn is not defined over unnumbered links", p->name );
     rif->sock->saddr = IPA_NONE;
     if (rif->multicast) {
 #ifndef IPV6
