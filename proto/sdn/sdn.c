@@ -49,14 +49,14 @@ static struct sdn_interface *new_iface(struct proto *p, struct iface *new, unsig
 static void
 sdn_tx_err( sock *s, int err )
 {
-  struct rip_connection *c = ((struct rip_interface *)(s->data))->busy;
+  struct sdn_connection *c = ((struct sdn_interface *)(s->data))->busy;
   struct proto *p = c->proto;
-  log( L_ERR "%s: Unexpected error at rip transmit: %M", p->name, err );
+  log( L_ERR "%s: Unexpected error at sdn transmit: %M", p->name, err );
 }
 
 
 /*
- * sdn_tx - send one rip packet to the network
+ * sdn_tx - send one sdn packet to the network
  */
 static void
 sdn_tx( sock *s )
