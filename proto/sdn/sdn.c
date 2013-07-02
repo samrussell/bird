@@ -40,6 +40,41 @@ static struct sdn_interface *new_iface(struct proto *p, struct iface *new, unsig
  * This part is responsible for any updates that come from network
  */
 
+/*
+ * Output processing
+ *
+ * This part is responsible for getting packets out to the network.
+ */
+
+static void
+sdn_tx_err( sock *s, int err )
+{
+  struct rip_connection *c = ((struct rip_interface *)(s->data))->busy;
+  struct proto *p = c->proto;
+  log( L_ERR "%s: Unexpected error at rip transmit: %M", p->name, err );
+}
+
+
+/*
+ * sdn_tx - send one rip packet to the network
+ */
+static void
+sdn_tx( sock *s )
+{
+  DBG ( "not actually txing but sdn_tx called");
+  return;
+}
+
+
+/*
+ * sdn_rx - Receive hook: get packet and be awesome
+ */
+static int
+sdn_rx(sock *s, int size)
+{
+  return 1;
+}
+
 
 /*
  * Interface to BIRD core
@@ -164,13 +199,13 @@ new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_
   rif->sock = sk_new( p->pool );
   rif->sock->type = SK_UDP;
   rif->sock->sport = P_CF->port;
-  rif->sock->rx_hook = NULL; //sdn_rx;
+  rif->sock->rx_hook = sdn_rx;
   rif->sock->data = rif;
   rif->sock->rbsize = 10240;
   rif->sock->iface = new;		/* Automagically works for dummy interface */
   rif->sock->tbuf = mb_alloc( p->pool, sizeof( struct sdn_packet ));
-  rif->sock->tx_hook = NULL; //sdn_tx;
-  rif->sock->err_hook = NULL; //sdn_tx_err;
+  rif->sock->tx_hook = sdn_tx;
+  rif->sock->err_hook = sdn_tx_err;
   rif->sock->daddr = IPA_NONE;
   rif->sock->dport = P_CF->port;
   if (new)
