@@ -164,13 +164,13 @@ new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_
   rif->sock = sk_new( p->pool );
   rif->sock->type = SK_UDP;
   rif->sock->sport = P_CF->port;
-  rif->sock->rx_hook = sdn_rx;
+  rif->sock->rx_hook = NULL; //sdn_rx;
   rif->sock->data = rif;
   rif->sock->rbsize = 10240;
   rif->sock->iface = new;		/* Automagically works for dummy interface */
   rif->sock->tbuf = mb_alloc( p->pool, sizeof( struct sdn_packet ));
-  rif->sock->tx_hook = sdn_tx;
-  rif->sock->err_hook = sdn_tx_err;
+  rif->sock->tx_hook = NULL; //sdn_tx;
+  rif->sock->err_hook = NULL; //sdn_tx_err;
   rif->sock->daddr = IPA_NONE;
   rif->sock->dport = P_CF->port;
   if (new)
