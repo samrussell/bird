@@ -337,7 +337,7 @@ sdn_rt_notify(struct proto *p, struct rtable *table UNUSED, struct network *net,
     if (new->attrs->dest == RTD_ROUTER)
       log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }", net->n.prefix, net->n.pxlen, new->attrs->gw);
     else
-      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d}] }" net->n.prefix, net->n.pxlen);
+      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d}] }", net->n.prefix, net->n.pxlen);
   }
   else{
     //log_msg(L_DEBUG "Removing route: %-1I/%2d ", net->n.prefix, net->n.pxlen);
@@ -347,9 +347,9 @@ sdn_rt_notify(struct proto *p, struct rtable *table UNUSED, struct network *net,
     //    log_msg(" ->%I", old->attrs->gw);
     //}
     if (old && old->attrs->dest == RTD_ROUTER)
-      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }" net->n.prefix, net->n.pxlen, old->attrs->gw);
+      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }", net->n.prefix, net->n.pxlen, old->attrs->gw);
     else
-      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d}] }" net->n.prefix, net->n.pxlen);
+      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d}] }", net->n.prefix, net->n.pxlen);
   }
 
   e = fib_find( &P->rtable, &net->n.prefix, net->n.pxlen );
