@@ -235,7 +235,7 @@ static void
 sdn_if_notify(struct proto *p, unsigned c, struct iface *iface)
 {
   DBG( "sdn: if notify\n" );
-  debug(L_WARN "sdn: interface advertised, name: %s", iface->name);
+  log_msg(L_DEBUG "Calling sdn_if_notify for if: %s", iface->name);
 }
 
 static struct ea_list *
