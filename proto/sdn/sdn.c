@@ -298,20 +298,58 @@ sdn_rt_notify(struct proto *p, struct rtable *table UNUSED, struct network *net,
   struct sdn_entry *e;
 
   log_msg(L_DEBUG "Calling sdn_rt_notify");
+  /*
+   * Routes look like this
+   * {
+   *   "prefix" : "1.1.1.1",
+   *   "mask" : 24,
+   *   "via" : "192.168.1.1"
+   * }
+   * Message looks like
+   * {
+   *   "added": [
+   *      {
+   *       "prefix" : "1.1.1.0",
+   *       "mask" : 24,
+   *       "via" : "192.168.1.1"
+   *     },
+   *      {
+   *       "prefix" : "1.1.2.0",
+   *       "mask" : 24,
+   *       "via" : "192.168.1.1"
+   *     }
+   *   ]
+   *   "removed": [
+   *      {
+   *       "prefix" : "1.1.3.0",
+   *       "mask" : 24,
+   *       "via" : "192.168.1.1"
+   *     },
+   *   ]
+   * }
+   */
   if(new){
     //log_msg(L_DEBUG "New route: %I", net->n.prefix);
-    log_msg(L_DEBUG "New route: %-1I/%2d ", net->n.prefix, net->n.pxlen);
-    log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
+    #log_msg(L_DEBUG "New route: %-1I/%2d ", net->n.prefix, net->n.pxlen);
+    #log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
+    #if (new->attrs->dest == RTD_ROUTER)
+    #  log_msg(" ->%I", new->attrs->gw);
     if (new->attrs->dest == RTD_ROUTER)
-      log_msg(" ->%I", new->attrs->gw);
+      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }", net->n.prefix, net->n.pxlen, new->attrs->gw);
+    else
+      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d}] }" net->n.prefix, net->n.pxlen);
   }
   else{
-    log_msg(L_DEBUG "Removing route: %-1I/%2d ", net->n.prefix, net->n.pxlen);
-    if(old){
-      log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, old->pflags, old->pref);
-      if (old->attrs->dest == RTD_ROUTER)
-        log_msg(" ->%I", old->attrs->gw);
-    }
+    #log_msg(L_DEBUG "Removing route: %-1I/%2d ", net->n.prefix, net->n.pxlen);
+    #if(old){
+    #  log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, old->pflags, old->pref);
+    #  if (old->attrs->dest == RTD_ROUTER)
+    #    log_msg(" ->%I", old->attrs->gw);
+    #}
+    if (old && old->attrs->dest == RTD_ROUTER)
+      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }" net->n.prefix, net->n.pxlen, old->attrs->gw);
+    else
+      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d}] }" net->n.prefix, net->n.pxlen);
   }
 
   e = fib_find( &P->rtable, &net->n.prefix, net->n.pxlen );
