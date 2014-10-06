@@ -95,7 +95,7 @@ sdn_dump_entry( struct sdn_entry *e )
 static int
 sdn_start(struct proto *p)
 {
-  //struct sdn_interface *rif;
+  struct sdn_interface *rif;
   DBG( "sdn: starting instance...\n" );
 
 #ifdef LOCAL_DEBUG
@@ -107,8 +107,8 @@ sdn_start(struct proto *p)
   init_list( &P->garbage );
   init_list( &P->interfaces );
   //DBG( "sdn: initialised lists\n" );
-  //rif = new_iface(p, NULL, 0, NULL);	/* Initialize dummy interface */
-  //add_head( &P->interfaces, NODE rif );
+  rif = new_iface(p, NULL, 0, NULL);	/* Initialize dummy interface */
+  add_head( &P->interfaces, NODE rif );
   CHK_MAGIC;
 
   sdn_init_instance(p);

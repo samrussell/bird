@@ -133,6 +133,9 @@ struct sdn_patt {
 #define IM_QUIET 4
 #define IM_NOLISTEN 8
 #define IM_VERSION1 16
+  int tx_tos;
+  int tx_priority;
+  int ttl_security;	/* bool + 2 for TX only (send, but do not check on RX) */
 };
 
 struct sdn_proto_config {
