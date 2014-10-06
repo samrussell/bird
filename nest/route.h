@@ -202,6 +202,14 @@ typedef struct rte {
       struct rip_entry *entry;
     } rip;
 #endif
+#ifdef CONFIG_SDN
+    struct {
+      node garbage;			/* List for garbage collection */
+      byte metric;			/* RIP metric */
+      u16 tag;				/* External route tag */
+      struct sdn_entry *entry;
+    } sdn;
+#endif
 #ifdef CONFIG_OSPF
     struct {
       u32 metric1, metric2;		/* OSPF Type 1 and Type 2 metrics */
@@ -365,6 +373,7 @@ typedef struct rta {
 #define RTS_OSPF_EXT2 10		/* OSPF external route type 2 */
 #define RTS_BGP 11			/* BGP route */
 #define RTS_PIPE 12			/* Inter-table wormhole */
+#define RTS_SDN 13
 
 #define RTC_UNICAST 0
 #define RTC_BROADCAST 1
@@ -407,7 +416,8 @@ typedef struct eattr {
 #define EAP_RIP 2			/* RIP */
 #define EAP_OSPF 3			/* OSPF */
 #define EAP_KRT 4			/* Kernel route attributes */
-#define EAP_MAX 5
+#define EAP_SDN 5
+#define EAP_MAX 6
 
 #define EA_CODE(proto,id) (((proto) << 8) | (id))
 #define EA_PROTO(ea) ((ea) >> 8)
@@ -518,6 +528,7 @@ extern struct protocol *attr_class_to_protocol[EAP_MAX];
 #define DEF_PREF_BGP		100	/* BGP */
 #define DEF_PREF_PIPE		70	/* Routes piped from other tables */
 #define DEF_PREF_INHERITED	10	/* Routes inherited from other routing daemons */
+#define DEF_PREF_SDN            5       /* SDN isn't cool enough for a priority :'( */ 
 
 
 /*

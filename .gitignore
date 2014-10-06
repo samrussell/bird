@@ -1,0 +1,10 @@
+autom4te.cache/
+obj/
+configure
+Makefile
+bird
+birdc
+birdcl
+config.log
+config.status
+*.swp

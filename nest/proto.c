@@ -904,6 +904,9 @@ protos_build(void)
 #ifdef CONFIG_RIP
   proto_build(&proto_rip);
 #endif
+#ifdef CONFIG_SDN
+  proto_build(&proto_sdn);
+#endif
 #ifdef CONFIG_STATIC
   proto_build(&proto_static);
 #endif
