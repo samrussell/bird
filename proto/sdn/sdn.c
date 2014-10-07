@@ -15,11 +15,14 @@
 #undef LOCAL_DEBUG
 #define LOCAL_DEBUG 1
 
+#include <stdlib.h>
+#include <unistd.h>
 #include "nest/bird.h"
 #include "nest/iface.h"
 #include "nest/protocol.h"
 #include "nest/route.h"
 #include "lib/socket.h"
+#include "sysdep/unix/unix.h"
 #include "lib/resource.h"
 #include "lib/lists.h"
 #include "lib/timer.h"
@@ -33,7 +36,9 @@
 #undef TRACE
 #define TRACE(level, msg, args...) do { if (p->debug & level) { log(L_TRACE "%s: " msg, p->name , ## args); } } while(0)
 
+//static struct sdn_interface *new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt);
 static struct sdn_interface *new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt);
+static sock* init_unix_socket(struct proto *p);
 
 /*
  * Input processing
@@ -62,7 +67,7 @@ sdn_tx_err( sock *s, int err )
 static void
 sdn_tx( sock *s )
 {
-  DBG ( "not actually txing but sdn_tx called");
+  log_msg(L_DEBUG "not actually txing but sdn_tx called");
   return;
 }
 
@@ -73,9 +78,20 @@ sdn_tx( sock *s )
 static int
 sdn_rx(sock *s, int size)
 {
+  log_msg( L_DEBUG "Got a packet");
   return 1;
 }
 
+static struct sdn_interface*
+find_interface(struct proto *p, struct iface *what)
+{
+  struct sdn_interface *i;
+
+  WALK_LIST (i, P->interfaces)
+    if (i->iface == what)
+      return i;
+  return NULL;
+}
 
 /*
  * Interface to BIRD core
@@ -95,7 +111,8 @@ sdn_dump_entry( struct sdn_entry *e )
 static int
 sdn_start(struct proto *p)
 {
-  struct sdn_interface *rif;
+  //struct sdn_interface *rif;
+  //sock *s;
   DBG( "sdn: starting instance...\n" );
 
 #ifdef LOCAL_DEBUG
@@ -106,9 +123,12 @@ sdn_start(struct proto *p)
   init_list( &P->connections );
   init_list( &P->garbage );
   init_list( &P->interfaces );
+  init_list( &P->sockets );
   //DBG( "sdn: initialised lists\n" );
-  rif = new_iface(p, NULL, 0, NULL);	/* Initialize dummy interface */
-  add_head( &P->interfaces, NODE rif );
+  //rif = new_iface(p, NULL, 0, NULL);	/* Initialize dummy interface */
+  init_unix_socket(p);
+  //add_head( &P->interfaces, NODE rif );
+  //add_head( &P->sockets, NODE s );
   CHK_MAGIC;
 
   sdn_init_instance(p);
@@ -167,6 +187,83 @@ kill_iface(struct sdn_interface *i)
   mb_free(i);
 }
 
+static void
+unix_tx(sock *s)
+{
+  log_msg(L_DEBUG "sending");
+}
+
+static int
+unix_rx(sock *s, int size UNUSED)
+{
+  struct proto *p;
+  struct sdn_entry *entry;
+  log_msg(L_DEBUG "got packet on socket");
+  p = s->data;
+  FIB_WALK( &P->rtable, e ) {
+    entry = (struct sdn_entry*) e;
+    log_msg(L_DEBUG "%I told me %d/%d ago: to %I/%d go via %I, metric %d ",
+    entry->whotoldme, entry->updated-now, entry->changed-now, entry->n.prefix, entry->n.pxlen, entry->nexthop, entry->metric );
+  } FIB_WALK_END;
+  // send stuff back to garyland
+  s->tbuf = "gary";
+  sk_send(s, 5);
+  return 0;
+}
+
+static void
+unix_err(sock *s, int err UNUSED)
+{
+  log_msg(L_ERR "got error on socket");
+}
+
+static int
+unix_connect(sock *s, int size UNUSED)
+{
+  struct proto *p=NULL;
+  struct proto_config *pc;
+  log_msg(L_DEBUG "someone connected to our socket");
+  WALK_LIST(pc, config->protos){
+    if (pc->protocol == &proto_sdn && pc->proto){
+      log_msg(L_DEBUG "this is the droid we're looking for");
+      p = pc->proto;
+    }
+    log_msg(L_DEBUG "gary");
+  }
+  if(!p) return 0;
+  s->rx_hook = unix_rx;
+  s->tx_hook = unix_tx;
+  s->err_hook = unix_err;
+  s->data = p;
+  //s->pool = c->pool;            /* We need to have all the socket buffers allocated in the cli pool */
+  //c->rx_pos = c->rx_buf;
+  //c->rx_aux = NULL;
+  //rmove(s, c->pool);
+  // add socket to pool
+  CHK_MAGIC;
+  add_head( &P->sockets, NODE s );
+  return 1;
+}
+
+static sock*
+init_unix_socket(struct proto *p)
+{
+  sock *s;
+  s = sk_new(p->pool);
+  s->type = SK_UNIX_PASSIVE;
+  s->rx_hook = unix_connect;
+  s->rbsize = 1024;
+  s->data = p;
+
+  unlink("/home/gary/gary.sock");
+
+  if(sk_open_unix(s, "/home/gary/gary.sock") < 0){
+    die("Cannot open socket");
+  }
+
+  return s;
+}
+
 /**
  * new_iface
  * @p: myself
@@ -178,7 +275,106 @@ kill_iface(struct sdn_interface *i)
  *
  * Create an interface structure and start listening on the interface.
  */
-static struct sdn_interface *
+
+
+// new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt )
+//static sock *
+//new_listening_iface(ip_addr addr, unsigned port, u32 flags)
+//static sock *
+static struct sdn_interface*
+new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt )
+{
+  struct sdn_interface *rif;
+  struct sdn_patt *PATT = (struct sdn_patt *) patt;
+  rif = mb_allocz(p->pool, sizeof( struct sdn_interface ));
+  rif->iface = new;
+  rif->proto = p;
+  rif->busy = NULL;
+  if (PATT) {
+    rif->mode = PATT->mode;
+    rif->metric = PATT->metric;
+    rif->multicast = (!(PATT->mode & IM_BROADCAST)) && (flags & IF_MULTICAST);
+    //rif->check_ttl = (PATT->ttl_security == 1);
+  }
+  /* lookup multicasts over unnumbered links - no: rip is not defined over unnumbered links */
+
+  if (rif->multicast)
+    DBG( "Doing multicasts!\n" );
+
+  rif->sock = sk_new( p->pool );
+  rif->sock->type = SK_UDP;
+  rif->sock->sport = P_CF->port;
+  rif->sock->rx_hook = sdn_rx;
+  rif->sock->data = rif;
+  rif->sock->rbsize = 10240;
+  rif->sock->iface = new;		/* Automagically works for dummy interface */
+  rif->sock->tbuf = mb_alloc( p->pool, sizeof( struct sdn_packet ));
+  rif->sock->tx_hook = sdn_tx;
+  rif->sock->err_hook = sdn_tx_err;
+  rif->sock->daddr = IPA_NONE;
+  rif->sock->dport = P_CF->port;
+  if (new)
+    {
+      rif->sock->tos = PATT->tx_tos;
+      rif->sock->priority = PATT->tx_priority;
+      rif->sock->ttl = PATT->ttl_security ? 255 : 1;
+      // rif->sock->flags = SKF_LADDR_RX | (rif->check_ttl ? SKF_TTL_RX : 0);
+    }
+
+  if (new) {
+    if (new->addr->flags & IA_PEER)
+      log( L_WARN "%s: sdn is not defined over unnumbered links", p->name );
+    if (rif->multicast) {
+#ifndef IPV6
+      rif->sock->daddr = ipa_from_u32(0xe0000009);
+#else
+      rif->sock->daddr = ipa_build(0xff020000, 0, 0, 9);
+#endif
+    } else {
+      rif->sock->daddr = new->addr->brd;
+    }
+  }
+
+  if (!ipa_nonzero(rif->sock->daddr)) {
+    if (rif->iface)
+      log( L_WARN "%s: interface %s is too strange for me", p->name, rif->iface->name );
+  } else {
+
+    if (sk_open(rif->sock) < 0)
+      goto err;
+
+    if (rif->multicast)
+      {
+	if (sk_setup_multicast(rif->sock) < 0)
+	  goto err;
+	if (sk_join_group(rif->sock, rif->sock->daddr) < 0)
+	  goto err;
+      }
+    else
+      {
+	if (sk_setup_broadcast(rif->sock) < 0)
+	  goto err;
+      }
+  }
+
+  TRACE(D_EVENTS, "Listening on %s, port %d, mode %s (%I)", rif->iface ? rif->iface->name : "(dummy)", P_CF->port, rif->multicast ? "multicast" : "broadcast", rif->sock->daddr );
+  
+  return rif;
+
+ err:
+  sk_log_error(rif->sock, p->name);
+  log(L_ERR "%s: Cannot open socket for %s", p->name, rif->iface ? rif->iface->name : "(dummy)" );
+  if (rif->iface) {
+    rfree(rif->sock);
+    mb_free(rif);
+    return NULL;
+  }
+  /* On dummy, we just return non-working socket, so that user gets error every time anyone requests table */
+  return rif;
+
+}
+
+/*static struct sdn_interface *
 new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt )
 {
   struct sdn_interface *rif;
@@ -203,7 +399,7 @@ new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_
   rif->sock->rx_hook = sdn_rx;
   rif->sock->data = rif;
   rif->sock->rbsize = 10240;
-  rif->sock->iface = new;		/* Automagically works for dummy interface */
+  rif->sock->iface = new;		// Automagically works for dummy interface
   rif->sock->tbuf = mb_alloc( p->pool, sizeof( struct sdn_packet ));
   rif->sock->tx_hook = sdn_tx;
   rif->sock->err_hook = sdn_tx_err;
@@ -229,8 +425,66 @@ new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_
     } else {
       rif->sock->daddr = new->addr->brd;
     }
+    rif->sock->daddr = ipa_from_u32(0x00000000);
   }
+  if (!ipa_nonzero(rif->sock->daddr)) {
+    if (rif->iface)
+      log( L_WARN "%s: interface %s is too strange for me", p->name, rif->iface->name );
+  } else { 
+
+    if (sk_open(rif->sock) < 0)
+      goto err;
+
+    if (rif->multicast)
+      {
+	if (sk_setup_multicast(rif->sock) < 0)
+	  goto err;
+	if (sk_join_group(rif->sock, rif->sock->daddr) < 0)
+	  goto err;
+      }
+    else
+      {
+	if (sk_setup_broadcast(rif->sock) < 0)
+	  goto err;
+      }
+  }
+
+  TRACE(D_EVENTS, "Listening on %s, port %d, mode %s (%I)", rif->iface ? rif->iface->name : "(dummy)", P_CF->port, rif->multicast ? "multicast" : "broadcast", rif->sock->daddr );
+  
   return rif;
+
+ err:
+  sk_log_error(rif->sock, p->name);
+  log_msg(L_ERR "Error opening socket on %s", rif->iface);
+  log(L_ERR "%s: Cannot open socket for %s", p->name, rif->iface ? rif->iface->name : "(dummy)" );
+  if (rif->iface) {
+    rfree(rif->sock);
+    mb_free(rif);
+    return NULL;
+  }
+  // On dummy, we just return non-working socket, so that user gets error every time anyone requests table
+  return rif;
+}*/
+
+static void
+sdn_real_if_add(struct object_lock *lock)
+{
+  struct iface *iface = lock->iface;
+  struct proto *p = lock->data;
+  struct sdn_interface *rif;
+  struct iface_patt *k = iface_patt_find(&P_CF->iface_list, iface, iface->addr);
+
+  if (!k)
+    bug("This can not happen! It existed few seconds ago!" );
+  log_msg(L_DEBUG "adding interface %s", iface->name);
+  DBG("adding interface %s\n", iface->name );
+  rif = new_iface(p, iface, iface->flags, k);
+  if (rif) {
+    add_head( &P->interfaces, NODE rif );
+    DBG("Adding object lock of %p for %p\n", lock, rif);
+    log_msg(L_DEBUG "Adding object lock of %p for %p\n", lock, rif);
+    rif->lock = lock;
+  } else { rfree(lock); }
 }
 
 static void
@@ -238,6 +492,52 @@ sdn_if_notify(struct proto *p, unsigned c, struct iface *iface)
 {
   DBG( "sdn: if notify\n" );
   log_msg(L_DEBUG "Calling sdn_if_notify for if: %s", iface->name);
+  if (iface->flags & IF_IGNORE){
+    log_msg(L_DEBUG "Ignoring if %s", iface->name);
+    return;
+  }
+  if (c & IF_CHANGE_DOWN) {
+    struct sdn_interface *i;
+    log_msg(L_DEBUG "Interface %s going down", iface->name);
+    i = find_interface(p, iface);
+    if (i) {
+      rem_node(NODE i);
+      rfree(i->lock);
+      kill_iface(i);
+    }
+  }
+  if (c & IF_CHANGE_UP) {
+    struct iface_patt *k = iface_patt_find(&P_CF->iface_list, iface, iface->addr);
+    struct object_lock *lock;
+    struct sdn_patt *PATT = (struct sdn_patt *) k;
+
+    log_msg(L_DEBUG "Interface %s going up", iface->name);
+
+    if (!k) {
+      log_msg(L_DEBUG "Not interested in interface %s", iface->name);
+      return; /* We are not interested in this interface */
+    }
+
+    lock = olock_new( p->pool );
+    if (!(PATT->mode & IM_BROADCAST) && (iface->flags & IF_MULTICAST)){
+      log_msg(L_DEBUG "multicast and broadcast flags");
+#ifndef IPV6
+      lock->addr = ipa_from_u32(0xe0000009);
+#else
+      ip_pton("FF02::9", &lock->addr);
+#endif
+    }
+    else {
+      log_msg(L_DEBUG "not multicast/broadcast flags");
+      lock->addr = iface->addr->brd;
+    }
+    lock->port = P_CF->port;
+    lock->iface = iface;
+    lock->hook = sdn_real_if_add;
+    lock->data = p;
+    lock->type = OBJLOCK_UDP;
+    olock_acquire(lock);
+  }
 }
 
 static struct ea_list *
@@ -288,6 +588,83 @@ sdn_store_tmp_attrs(struct rte *rt, struct ea_list *attrs)
   rt->u.sdn.metric = ea_get_int(attrs, EA_SDN_METRIC, 1);
 }
 
+static void sdn_route_print_to_sockets(struct proto* p, char* route)
+{
+  sock *skt=NULL;
+  WALK_LIST(skt, P->sockets){
+    skt->tbuf=route;
+    sk_send(skt, strlen(route));
+  }
+}
+
+static void
+sdn_route_mod_str(struct proto *p, struct sdn_entry *e, struct network *net, struct rte *new, struct rte *old)
+{
+  int varlen=0;
+  char* addedstring = "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }\n";
+  char* removedstring = "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }\n";
+  char* outbuffer = NULL;
+  if(new){
+    //log_msg(L_DEBUG "New route: %I", net->n.prefix);
+    //log_msg(L_DEBUG "New route: %-1I/%2d ", net->n.prefix, net->n.pxlen);
+    //log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
+    //if (new->attrs->dest == RTD_ROUTER)
+    //  log_msg(" ->%I", new->attrs->gw);
+    if (new->attrs->dest == RTD_ROUTER)
+    {
+      //log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }", net->n.prefix, net->n.pxlen, new->attrs->gw);
+      varlen = 33 + 3 + 33 + strlen(addedstring);
+      outbuffer = xmalloc(varlen+1);
+      outbuffer[varlen] = '\0';
+      bsnprintf(outbuffer, varlen, addedstring, net->n.prefix, net->n.pxlen, new->attrs->gw);
+      log_msg(L_DEBUG "%s", outbuffer);
+      sdn_route_print_to_sockets(p, outbuffer);
+      free(outbuffer);
+    }
+    else
+      {
+      //log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d}] }", net->n.prefix, net->n.pxlen); 
+      varlen = 33 + 3 + strlen(addedstring);
+      outbuffer = xmalloc(varlen+1);
+      outbuffer[varlen] = '\0';
+      bsnprintf(outbuffer, varlen, addedstring, net->n.prefix, net->n.pxlen);
+      log_msg(L_DEBUG "%s", outbuffer);
+      sdn_route_print_to_sockets(p, outbuffer);
+      free(outbuffer);
+    }
+  }
+  else{
+    //log_msg(L_DEBUG "Removing route: %-1I/%2d ", net->n.prefix, net->n.pxlen);
+    //if(old){
+    //  log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, old->pflags, old->pref);
+    //  if (old->attrs->dest == RTD_ROUTER)
+    //    log_msg(" ->%I", old->attrs->gw);
+    //}
+    if (old && old->attrs->dest == RTD_ROUTER)
+    {
+      //log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }", net->n.prefix, net->n.pxlen, old->attrs->gw);
+      varlen = 33 + 3 + 33 + strlen(removedstring);
+      outbuffer = xmalloc(varlen+1);
+      outbuffer[varlen] = '\0';
+      bsnprintf(outbuffer, varlen, removedstring, net->n.prefix, net->n.pxlen, old->attrs->gw);
+      log_msg(L_DEBUG "%s", outbuffer);
+      sdn_route_print_to_sockets(p, outbuffer);
+      free(outbuffer);
+    }
+    else
+    {
+      // log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d}] }", net->n.prefix, net->n.pxlen);
+      varlen = 33 + 3 + strlen(removedstring);
+      outbuffer = xmalloc(varlen+1);
+      outbuffer[varlen] = '\0';
+      bsnprintf(outbuffer, varlen, removedstring, net->n.prefix, net->n.pxlen);
+      log_msg(L_DEBUG "%s", outbuffer);
+      sdn_route_print_to_sockets(p, outbuffer);
+      free(outbuffer);
+    }
+  }
+}
+
 /*
  * sdn_rt_notify - core tells us about new route (possibly our
  * own), so store it into our data structures.
@@ -330,29 +707,9 @@ sdn_rt_notify(struct proto *p, struct rtable *table UNUSED, struct network *net,
    *   ]
    * }
    */
-  if(new){
-    //log_msg(L_DEBUG "New route: %I", net->n.prefix);
-    //log_msg(L_DEBUG "New route: %-1I/%2d ", net->n.prefix, net->n.pxlen);
-    //log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, new->pflags, new->pref);
-    //if (new->attrs->dest == RTD_ROUTER)
-    //  log_msg(" ->%I", new->attrs->gw);
-    if (new->attrs->dest == RTD_ROUTER)
-      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }", net->n.prefix, net->n.pxlen, new->attrs->gw);
-    else
-      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d}] }", net->n.prefix, net->n.pxlen);
-  }
-  else{
-    //log_msg(L_DEBUG "Removing route: %-1I/%2d ", net->n.prefix, net->n.pxlen);
-    //if(old){
-    //  log_msg(L_DEBUG "KF=%02x PF=%02x pref=%d ", net->n.flags, old->pflags, old->pref);
-    //  if (old->attrs->dest == RTD_ROUTER)
-    //    log_msg(" ->%I", old->attrs->gw);
-    //}
-    if (old && old->attrs->dest == RTD_ROUTER)
-      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }", net->n.prefix, net->n.pxlen, old->attrs->gw);
-    else
-      log_msg(L_DEBUG "<SDN_ANNOUNCE> {\"removed\" : [{\"prefix\" : \"%I\", \"mask\" : %d}] }", net->n.prefix, net->n.pxlen);
-  }
+  // get socket details
+  
+  sdn_route_mod_str(p, e, net, new, old);
 
   e = fib_find( &P->rtable, &net->n.prefix, net->n.pxlen );
   if (e)

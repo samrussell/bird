@@ -166,6 +166,7 @@ struct sdn_proto {
   struct fib rtable;
   list garbage;
   list interfaces;	/* Interfaces we really know about */
+  list sockets;
 #ifdef LOCAL_DEBUG
   int magic;
 #endif
