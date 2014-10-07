@@ -39,6 +39,7 @@
 //static struct sdn_interface *new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt);
 static struct sdn_interface *new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt);
 static sock* init_unix_socket(struct proto *p);
+static void sdn_route_print_to_sockets(struct proto* p, char* route);
 
 /*
  * Input processing
@@ -198,16 +199,28 @@ unix_rx(sock *s, int size UNUSED)
 {
   struct proto *p;
   struct sdn_entry *entry;
+  char* outbuffer = NULL;
+  //char* routestring = "<SDN_DUMP> [%s]\n";
+  //char* perroutestring = "{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}";
+  char* routestring = "<SDN_DUMP> {\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}\n";
+  int len = 0;
+  //char* addedstring = "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }\n";
   log_msg(L_DEBUG "got packet on socket");
   p = s->data;
   FIB_WALK( &P->rtable, e ) {
     entry = (struct sdn_entry*) e;
-    log_msg(L_DEBUG "%I told me %d/%d ago: to %I/%d go via %I, metric %d ",
-    entry->whotoldme, entry->updated-now, entry->changed-now, entry->n.prefix, entry->n.pxlen, entry->nexthop, entry->metric );
+    len = strlen(routestring) + 33 + 3 + 33;
+    outbuffer = xmalloc(len+1);
+    outbuffer[len] = '\0';
+    bsnprintf(outbuffer, len, routestring, entry->n.prefix, entry->n.pxlen, entry->nexthop);
+    sdn_route_print_to_sockets(p, outbuffer);
+    free(outbuffer);
+    //log_msg(L_DEBUG "%I told me %d/%d ago: to %I/%d go via %I, metric %d ",
+    //entry->whotoldme, entry->updated-now, entry->changed-now, entry->n.prefix, entry->n.pxlen, entry->nexthop, entry->metric );
   } FIB_WALK_END;
   // send stuff back to garyland
-  s->tbuf = "gary";
-  sk_send(s, 5);
+  //s->tbuf = "gary";
+  //sk_send(s, 5);
   return 0;
 }
 
