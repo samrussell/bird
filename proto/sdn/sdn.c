@@ -254,7 +254,7 @@ unix_connect(sock *s, int size UNUSED)
   //rmove(s, c->pool);
   // add socket to pool
   CHK_MAGIC;
-  add_head( &P->sockets, NODE s );
+  //add_head( &P->sockets, NODE s );
   return 1;
 }
 
@@ -262,17 +262,23 @@ static sock*
 init_unix_socket(struct proto *p)
 {
   sock *s;
+  char* socketname = (P_CF->unixsocket?P_CF->unixsocket:"/tmp/sdn.sock");
+  log_msg(L_DEBUG "Socket in config is %s\n", P_CF->unixsocket);
+
   s = sk_new(p->pool);
-  s->type = SK_UNIX_PASSIVE;
-  s->rx_hook = unix_connect;
+  s->type = SK_UNIX;
+  //s->rx_hook = unix_connect;
+  s->rx_hook = unix_rx;
   s->rbsize = 1024;
   s->data = p;
 
-  unlink("/home/gary/gary.sock");
+  //unlink(socketname);
 
-  if(sk_open_unix(s, "/home/gary/gary.sock") < 0){
+  if(sk_open_unix_connect(s, socketname) < 0){
     die("Cannot open socket");
   }
+  CHK_MAGIC;
+  add_head( &P->sockets, NODE s );
 
   return s;
 }
@@ -605,6 +611,7 @@ static void sdn_route_print_to_sockets(struct proto* p, char* route)
 {
   sock *skt=NULL;
   WALK_LIST(skt, P->sockets){
+    log_msg(L_DEBUG "printing out to socket");
     skt->tbuf=route;
     sk_send(skt, strlen(route));
   }

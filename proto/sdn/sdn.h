@@ -148,6 +148,7 @@ struct sdn_proto_config {
   int period;
   int garbage_time;
   int timeout_time;
+  char *unixsocket;
 
   int authtype;
 #define AT_NONE 0

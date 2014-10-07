@@ -19,7 +19,7 @@ CF_DEFINES
 
 CF_DECLS
 
-CF_KEYWORDS(SDN, METRIC)
+CF_KEYWORDS(SDN, METRIC, INTERFACE, UNIXSOCKET)
 
 %type <i> sdn_mode
 
@@ -37,6 +37,7 @@ sdn_cfg:
    sdn_cfg_start proto_name '{'
  | sdn_cfg proto_item ';'
  | sdn_cfg INTERFACE sdn_iface ';'
+ | sdn_cfg UNIXSOCKET TEXT ';' { SDN_CFG->unixsocket = $3; }
  ;
 
 sdn_mode: 

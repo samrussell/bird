@@ -104,6 +104,7 @@ volatile int async_shutdown_flag;
 void io_init(void);
 void io_loop(void);
 int sk_open_unix(struct birdsock *s, char *name);
+int sk_open_unix_connect(struct birdsock *s, char *name);
 void *tracked_fopen(struct pool *, char *name, char *mode);
 void test_old_bird(char *path);
 
