@@ -30,6 +30,11 @@
 #define SDN_PORT	55392	/* SDNng */
 #endif
 
+struct sdn_unix_socket_wrapper {
+  node n;
+  sock* skt;
+};
+
 struct sdn_connection {
   node n;
 

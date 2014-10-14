@@ -113,7 +113,7 @@ static int
 sdn_start(struct proto *p)
 {
   //struct sdn_interface *rif;
-  //sock *s;
+  struct sdn_unix_socket_wrapper *swrapper;
   DBG( "sdn: starting instance...\n" );
 
 #ifdef LOCAL_DEBUG
@@ -127,9 +127,10 @@ sdn_start(struct proto *p)
   init_list( &P->sockets );
   //DBG( "sdn: initialised lists\n" );
   //rif = new_iface(p, NULL, 0, NULL);	/* Initialize dummy interface */
-  init_unix_socket(p);
+  swrapper = mb_alloc( p->pool, sizeof( struct sdn_unix_socket_wrapper ));
+  swrapper->skt = init_unix_socket(p);
   //add_head( &P->interfaces, NODE rif );
-  //add_head( &P->sockets, NODE s );
+  add_head( &P->sockets, NODE swrapper );
   CHK_MAGIC;
 
   sdn_init_instance(p);
@@ -278,7 +279,7 @@ init_unix_socket(struct proto *p)
     die("Cannot open socket");
   }
   CHK_MAGIC;
-  add_head( &P->sockets, NODE s );
+  //add_head( &P->sockets, NODE s );
 
   return s;
 }
@@ -609,11 +610,11 @@ sdn_store_tmp_attrs(struct rte *rt, struct ea_list *attrs)
 
 static void sdn_route_print_to_sockets(struct proto* p, char* route)
 {
-  sock *skt=NULL;
-  WALK_LIST(skt, P->sockets){
-    log_msg(L_DEBUG "printing out to socket");
-    skt->tbuf=route;
-    sk_send(skt, strlen(route));
+  struct sdn_unix_socket_wrapper *swrapper=NULL;
+  WALK_LIST(swrapper, P->sockets){
+    log_msg(L_DEBUG "printing out to socket %X", swrapper->skt->type);
+    swrapper->skt->tbuf=route;
+    sk_send(swrapper->skt, strlen(route));
   }
 }
 
