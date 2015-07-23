@@ -247,6 +247,7 @@ unix_connect(sock *s, int size UNUSED)
   if(!p) return 0;
   s->rx_hook = unix_rx;
   s->tx_hook = unix_tx;
+  s->type = SK_MAGIC;
   s->err_hook = unix_err;
   s->data = p;
   //s->pool = c->pool;            /* We need to have all the socket buffers allocated in the cli pool */
@@ -256,6 +257,7 @@ unix_connect(sock *s, int size UNUSED)
   // add socket to pool
   CHK_MAGIC;
   //add_head( &P->sockets, NODE s );
+  //sk_insert(s);
   return 1;
 }
 
@@ -271,6 +273,14 @@ init_unix_socket(struct proto *p)
   //s->rx_hook = unix_connect;
   s->rx_hook = unix_rx;
   s->rbsize = 1024;
+  // need to set proper rbuf, rbsize etc 
+  //if (!s->rbuf && s->rbsize)
+      s->rbuf = s->rbuf_alloc = xmalloc(s->rbsize);
+      s->rpos = s->rbuf;
+      if (!s->tbuf && s->tbsize)
+          s->tbuf = s->tbuf_alloc = xmalloc(s->tbsize);
+      s->tpos = s->ttx = s->tbuf;
+  //}
   s->data = p;
 
   //unlink(socketname);
@@ -280,7 +290,6 @@ init_unix_socket(struct proto *p)
   }
   CHK_MAGIC;
   //add_head( &P->sockets, NODE s );
-
   return s;
 }
 
