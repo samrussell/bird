@@ -1,4 +1,10 @@
-//  Hello World server
+/*
+ *      BIRD ZeroMQ semi-integration
+ *
+ *      (c) 2015 Sam Russell <sam.h.russell@gmail.com>
+ *
+ *      Can be freely distributed and used under the terms of the GNU GPL.
+ */
 
 #include <zmq.h>
 #include <stdio.h>

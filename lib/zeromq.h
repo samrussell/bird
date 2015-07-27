@@ -1,7 +1,8 @@
 /*
- *	BIRD Socket Interface
+ *	BIRD ZeroMQ Interface
  *
  *	(c) 1998--2004 Martin Mares <mj@ucw.cz>
+ *	(c) 2015 Sam Russell <sam.h.russell@gmail.com>
  *
  *	Can be freely distributed and used under the terms of the GNU GPL.
  */

@@ -1,4 +1,11 @@
 #!/usr/bin/python
+#
+#      BIRD Route dump client
+#
+#      (c) 2015 Sam Russell <sam.h.russell@gmail.com>
+#
+#      Can be freely distributed and used under the terms of the GNU GPL.
+#
 import zmq
 
 context = zmq.Context()
