@@ -27,12 +27,14 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <netinet/icmp6.h>
+#include <zmq.h>
 
 #include "nest/bird.h"
 #include "lib/lists.h"
 #include "lib/resource.h"
 #include "lib/timer.h"
 #include "lib/socket.h"
+#include "lib/zeromq.h"
 #include "lib/event.h"
 #include "lib/string.h"
 #include "nest/iface.h"
@@ -1834,6 +1836,239 @@ sk_dump_all(void)
     sk_dump(&s->r);
   }
   debug("\n");
+}
+
+/*
+ *      zeromq handling code
+ */
+
+static list zeromq_list;
+static struct birdzmq *current_zeromq;
+static struct birdzmq *stored_zeromq;
+
+static inline zeromq *
+zq_next(zeromq *z)
+{
+  if (!z->n.next->next)
+    return NULL;
+  else
+    return SKIP_BACK(zeromq, n, z->n.next);
+}
+
+static void
+zq_alloc_bufs(zeromq *z)
+{
+  if (!z->rbuf && z->rbsize)
+    z->rbuf = z->rbuf_alloc = xmalloc(z->rbsize);
+  z->rpos = z->rbuf;
+  if (!z->tbuf && z->tbsize)
+    z->tbuf = z->tbuf_alloc = xmalloc(z->tbsize);
+  z->tpos = z->ttx = z->tbuf;
+}
+
+static void
+zq_free_bufs(zeromq *z)
+{
+  if (z->rbuf_alloc)
+  {
+    xfree(z->rbuf_alloc);
+    z->rbuf = z->rbuf_alloc = NULL;
+  }
+  if (z->tbuf_alloc)
+  {
+    xfree(z->tbuf_alloc);
+    z->tbuf = z->tbuf_alloc = NULL;
+  }
+}
+
+static void
+zq_free(resource *r)
+{
+  zeromq *z = (zeromq *) r;
+
+  zq_free_bufs(z);
+  if (z->fd >= 0)
+  {
+    close(z->fd);
+
+    if (z->flags & SKF_THREAD)
+      return;
+
+    if (z == current_zeromq)
+      current_zeromq = zq_next(z);
+    if (z == stored_zeromq)
+      stored_zeromq = zq_next(z);
+    rem_node(&z->n);
+    //zeromq_recalc_fdsets_p = 1;
+    // TODO: find out what recalc_fdsets_p means
+  }
+}
+
+static void
+zq_dump(resource *r)
+{
+  //zeromq *z = (zeromq *) r;
+  //static char *zq_type_names[] = { "TCP<", "TCP>", "TCP", "UDP", NULL, "IP", NULL, "MAGIC", "UNIX<", "UNIX", "DEL!" };
+
+  /*debug("(%s, ud=%p, sa=%08x, sp=%d, da=%08x, dp=%d, tos=%d, ttl=%d, if=%s)\n",
+	zq_type_names[z->type],
+	s->data,
+	s->saddr,
+	s->sport,
+	s->daddr,
+	s->dport,
+	s->tos,
+	s->ttl,
+	s->iface ? s->iface->name : "none");*/
+  debug("(ZEROMQ zq_dump not completed)\n");
+}
+
+static struct resclass zq_class = {
+  "Zeromq",
+  sizeof(zeromq),
+  zq_free,
+  zq_dump,
+  NULL,
+  NULL
+};
+
+/**
+ * zq_new - create a new zeromq instance (context?)
+ * @p: pool
+ *
+ */
+zeromq *
+zq_new(pool *p)
+{
+  zeromq *z = ralloc(p, &zq_class);
+  z->pool = p;
+  // s->saddr = s->daddr = IPA_NONE;
+  z->tos = z->priority = z->ttl = -1;
+  z->fd = NULL;
+  return z;
+}
+
+static int
+zq_setup(zeromq *z)
+{
+  //int y = 1;
+  //int fd = z->fd;
+  // TODO: figure out what we need to do here
+
+  //if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
+  //  ERR("O_NONBLOCK");
+
+  //if (!z->af)
+  //  return 0;
+
+  //if (ipa_nonzero(s->saddr) && !(s->flags & SKF_BIND))
+  //  s->flags |= SKF_PKTINFO;
+
+//#ifdef CONFIG_USE_HDRINCL
+  //if (sk_is_ipv4(s) && (s->type == SK_IP) && (s->flags & SKF_PKTINFO))
+  //{
+  //  s->flags &= ~SKF_PKTINFO;
+  //  s->flags |= SKF_HDRINCL;
+  //  if (setsockopt(fd, SOL_IP, IP_HDRINCL, &y, sizeof(y)) < 0)
+  //    ERR("IP_HDRINCL");
+  //}
+//#endif
+
+  //if (s->iface)
+  //{
+//#ifdef SO_BINDTODEVICE
+  //  struct ifreq ifr;
+  //  strcpy(ifr.ifr_name, s->iface->name);
+  //  if (setsockopt(s->fd, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr)) < 0)
+  //    ERR("SO_BINDTODEVICE");
+//#endif
+
+//#ifdef CONFIG_UNIX_DONTROUTE
+  //  if (setsockopt(s->fd, SOL_SOCKET, SO_DONTROUTE, &y, sizeof(y)) < 0)
+  //    ERR("SO_DONTROUTE");
+//#endif
+  //}
+
+  //if (s->priority >= 0)
+  //  if (sk_set_priority(s, s->priority) < 0)
+  //    return -1;
+
+  //if (sk_is_ipv4(s))
+  //{
+  //  if (s->flags & SKF_LADDR_RX)
+  //    if (sk_request_cmsg4_pktinfo(s) < 0)
+	//return -1;
+
+  //  if (s->flags & SKF_TTL_RX)
+  //    if (sk_request_cmsg4_ttl(s) < 0)
+	//return -1;
+
+  //  if ((s->type == SK_UDP) || (s->type == SK_IP))
+  //    if (sk_disable_mtu_disc4(s) < 0)
+	//return -1;
+
+  //  if (s->ttl >= 0)
+  //    if (sk_set_ttl4(s, s->ttl) < 0)
+	//return -1;
+
+  //  if (s->tos >= 0)
+  //    if (sk_set_tos4(s, s->tos) < 0)
+	//return -1;
+  //}
+
+  /*if (sk_is_ipv6(s))
+  {
+    if (s->flags & SKF_V6ONLY)
+      if (setsockopt(fd, SOL_IPV6, IPV6_V6ONLY, &y, sizeof(y)) < 0)
+	ERR("IPV6_V6ONLY");
+
+    if (s->flags & SKF_LADDR_RX)
+      if (sk_request_cmsg6_pktinfo(s) < 0)
+	return -1;
+
+    if (s->flags & SKF_TTL_RX)
+      if (sk_request_cmsg6_ttl(s) < 0)
+	return -1;
+
+    if ((s->type == SK_UDP) || (s->type == SK_IP))
+      if (sk_disable_mtu_disc6(s) < 0)
+	return -1;
+
+    if (s->ttl >= 0)
+      if (sk_set_ttl6(s, s->ttl) < 0)
+	return -1;
+
+    if (s->tos >= 0)
+      if (sk_set_tos6(s, s->tos) < 0)
+	return -1;
+  }*/
+
+  return 0;
+}
+
+static void
+zq_insert(zeromq *z)
+{
+  add_tail(&zeromq_list, &z->n);
+  //sock_recalc_fdsets_p = 1;
+}
+
+int
+zq_open(zeromq *z)
+{
+  void* context;
+  void* fd;
+  int result;
+
+  context = zmq_ctx_new();
+  fd = zmq_socket (context, z->type);
+  result = zmq_bind(fd, z->url);
+
+  ASSERT(result == 0);
+
+  z->fd = fd;
+  zq_insert(z);
+  return 0;
 }
 
 

@@ -7,4 +7,5 @@ birdc
 birdcl
 config.log
 config.status
+zmqlisten
 *.swp

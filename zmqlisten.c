@@ -106,9 +106,14 @@ int main (int argc, char** argv)
               // don't do anything here until we get the reply for zeromq
               while(errno == 0 && !zmqwantreply){
                   char zmqreq[] = "gary";
+                  zmq_pollitem_t items [] = {
+                      { responder,   0, ZMQ_POLLIN, 0 }
+                  };
                   printf("calling zmq_recv\n");
-                  zmq_recv (responder, buffer, 10, ZMQ_DONTWAIT);
-                  if(errno != EAGAIN){
+                  zmq_poll (items, 1, 0);
+                  if(items [0].revents & ZMQ_POLLIN){
+                      zmq_recv (responder, buffer, 10, 0); //, ZMQ_DONTWAIT);
+                  //if(errno != EAGAIN){
                       printf ("Received Hello\n");
                       zmqwantreply = 1; // maybe increment?
                       if (send(s2, zmqreq, strlen(zmqreq)+1, 0) < 0) {
@@ -118,6 +123,8 @@ int main (int argc, char** argv)
                       // set errno = 0 as zmq_recv does bad things to it
                       errno = 0;
                   }
+                  // fake errno for now
+                  errno = EAGAIN;
               }
               if (errno != 0 && errno != EAGAIN){
                   //printf("Error: %d\n", errno);
