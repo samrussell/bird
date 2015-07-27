@@ -14,6 +14,7 @@ CF_HDR
 #include "conf/conf.h"
 #include "lib/resource.h"
 #include "lib/socket.h"
+#include "lib/zeromq.h"
 #include "lib/timer.h"
 #include "lib/string.h"
 #include "nest/protocol.h"

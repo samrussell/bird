@@ -17,11 +17,13 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <zmq.h>
 #include "nest/bird.h"
 #include "nest/iface.h"
 #include "nest/protocol.h"
 #include "nest/route.h"
 #include "lib/socket.h"
+#include "lib/zeromq.h"
 #include "sysdep/unix/unix.h"
 #include "lib/resource.h"
 #include "lib/lists.h"
@@ -39,6 +41,7 @@
 //static struct sdn_interface *new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt);
 static struct sdn_interface *new_iface(struct proto *p, struct iface *new, unsigned long flags, struct iface_patt *patt);
 static sock* init_unix_socket(struct proto *p);
+static zeromq* init_zeromq(struct proto *p);
 static void sdn_route_print_to_sockets(struct proto* p, char* route);
 
 /*
@@ -113,7 +116,7 @@ static int
 sdn_start(struct proto *p)
 {
   //struct sdn_interface *rif;
-  struct sdn_unix_socket_wrapper *swrapper;
+  struct sdn_zeromq_wrapper *zwrapper;
   DBG( "sdn: starting instance...\n" );
 
 #ifdef LOCAL_DEBUG
@@ -127,10 +130,13 @@ sdn_start(struct proto *p)
   init_list( &P->sockets );
   //DBG( "sdn: initialised lists\n" );
   //rif = new_iface(p, NULL, 0, NULL);	/* Initialize dummy interface */
-  swrapper = mb_alloc( p->pool, sizeof( struct sdn_unix_socket_wrapper ));
-  swrapper->skt = init_unix_socket(p);
+  zwrapper = mb_alloc( p->pool, sizeof( struct sdn_zeromq_wrapper ));
+  // we're going to build zmq sockets instead
+  //swrapper->skt = init_unix_socket(p);
+  zwrapper->skt = init_zeromq(p);
+  // URL tcp://*:5556
   //add_head( &P->interfaces, NODE rif );
-  add_head( &P->sockets, NODE swrapper );
+  add_head( &P->sockets, NODE zwrapper );
   CHK_MAGIC;
 
   sdn_init_instance(p);
@@ -193,6 +199,44 @@ static void
 unix_tx(sock *s)
 {
   log_msg(L_DEBUG "sending");
+}
+
+static int
+zeromq_rx(zeromq *z, int size)
+{
+  struct proto *p;
+  struct sdn_entry *entry;
+  char* outbuffer = NULL;
+  //char* routestring = "<SDN_DUMP> [%s]\n";
+  //char* perroutestring = "{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}";
+  char* routestring = "<SDN_DUMP> {\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}";
+  char* endstring = "done\n";
+  int len = 0;
+  //char* addedstring = "<SDN_ANNOUNCE> {\"added\" : [{\"prefix\" : \"%I\", \"mask\" : %d, \"via\" : \"%I\"}] }\n";
+  z->rpos = z->rbuf;
+  z->rpos[size] = '\0';
+  log_msg(L_DEBUG "got packet on socket: <%s>\n", z->rpos);
+  p = z->data;
+  log_msg(L_DEBUG "");
+  FIB_WALK( &P->rtable, e ) {
+    entry = (struct sdn_entry*) e;
+    len = strlen(routestring) + 33 + 3 + 33;
+    outbuffer = xmalloc(len+1);
+    outbuffer[len] = '\0';
+    bsnprintf(outbuffer, len, routestring, entry->n.prefix, entry->n.pxlen, entry->nexthop);
+    //sdn_route_print_to_sockets(p, outbuffer);
+    // this should be in zq_write or zq_send, fix later
+    log_msg(L_DEBUG "%s\n", outbuffer);
+    zmq_send(z->fd, outbuffer, strlen(outbuffer), ZMQ_SNDMORE);
+    free(outbuffer);
+    //log_msg(L_DEBUG "%I told me %d/%d ago: to %I/%d go via %I, metric %d ",
+    //entry->whotoldme, entry->updated-now, entry->changed-now, entry->n.prefix, entry->n.pxlen, entry->nexthop, entry->metric );
+  } FIB_WALK_END;
+  zmq_send(z->fd, endstring, strlen(endstring), 0);
+  // send stuff back to garyland
+  //s->tbuf = "gary";
+  //sk_send(s, 5);
+  return 0;
 }
 
 static int
@@ -259,6 +303,42 @@ unix_connect(sock *s, int size UNUSED)
   //add_head( &P->sockets, NODE s );
   //sk_insert(s);
   return 1;
+}
+
+static zeromq*
+init_zeromq(struct proto *p)
+{
+  zeromq *z;
+  //char* socketname = (P_CF->unixsocket?P_CF->unixsocket:"/tmp/sdn.sock");
+  char* url = "tcp://127.0.0.1:5556";
+  log_msg(L_DEBUG "Using URL\n", url);
+
+  z = zq_new(p->pool);
+  z->type = ZMQ_REP;
+  z->url = xmalloc(strlen(url)+1);
+  strcpy(z->url, url);
+  z->url[strlen(url)] = '\0';
+  //s->rx_hook = unix_connect;
+  z->rx_hook = zeromq_rx;
+  z->rbsize = 1024;
+  // need to set proper rbuf, rbsize etc 
+  //if (!s->rbuf && s->rbsize)
+      z->rbuf = z->rbuf_alloc = xmalloc(z->rbsize);
+      z->rpos = z->rbuf;
+      if (!z->tbuf && z->tbsize)
+          z->tbuf = z->tbuf_alloc = xmalloc(z->tbsize);
+      z->tpos = z->ttx = z->tbuf;
+  //}
+  z->data = p;
+
+  //unlink(socketname);
+
+  if(zq_open(z) < 0){
+    die("Cannot open socket");
+  }
+  CHK_MAGIC;
+  //add_head( &P->sockets, NODE s );
+  return z;
 }
 
 static sock*
@@ -648,7 +728,7 @@ sdn_route_mod_str(struct proto *p, struct sdn_entry *e, struct network *net, str
       outbuffer[varlen] = '\0';
       bsnprintf(outbuffer, varlen, addedstring, net->n.prefix, net->n.pxlen, new->attrs->gw);
       log_msg(L_DEBUG "%s", outbuffer);
-      sdn_route_print_to_sockets(p, outbuffer);
+      //sdn_route_print_to_sockets(p, outbuffer);
       free(outbuffer);
     }
     else
@@ -659,7 +739,7 @@ sdn_route_mod_str(struct proto *p, struct sdn_entry *e, struct network *net, str
       outbuffer[varlen] = '\0';
       bsnprintf(outbuffer, varlen, addedstring, net->n.prefix, net->n.pxlen);
       log_msg(L_DEBUG "%s", outbuffer);
-      sdn_route_print_to_sockets(p, outbuffer);
+      //sdn_route_print_to_sockets(p, outbuffer);
       free(outbuffer);
     }
   }
@@ -678,7 +758,7 @@ sdn_route_mod_str(struct proto *p, struct sdn_entry *e, struct network *net, str
       outbuffer[varlen] = '\0';
       bsnprintf(outbuffer, varlen, removedstring, net->n.prefix, net->n.pxlen, old->attrs->gw);
       log_msg(L_DEBUG "%s", outbuffer);
-      sdn_route_print_to_sockets(p, outbuffer);
+      //sdn_route_print_to_sockets(p, outbuffer);
       free(outbuffer);
     }
     else
@@ -689,7 +769,7 @@ sdn_route_mod_str(struct proto *p, struct sdn_entry *e, struct network *net, str
       outbuffer[varlen] = '\0';
       bsnprintf(outbuffer, varlen, removedstring, net->n.prefix, net->n.pxlen);
       log_msg(L_DEBUG "%s", outbuffer);
-      sdn_route_print_to_sockets(p, outbuffer);
+      //sdn_route_print_to_sockets(p, outbuffer);
       free(outbuffer);
     }
   }

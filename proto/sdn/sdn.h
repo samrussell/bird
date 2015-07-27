@@ -35,6 +35,11 @@ struct sdn_unix_socket_wrapper {
   sock* skt;
 };
 
+struct sdn_zeromq_wrapper {
+  node n;
+  zeromq* skt;
+};
+
 struct sdn_connection {
   node n;
 

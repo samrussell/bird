@@ -1889,7 +1889,7 @@ zq_free(resource *r)
   zq_free_bufs(z);
   if (z->fd >= 0)
   {
-    close(z->fd);
+    zmq_close(z->fd);
 
     if (z->flags & SKF_THREAD)
       return;
@@ -2071,6 +2071,32 @@ zq_open(zeromq *z)
   return 0;
 }
 
+int
+zq_read(zeromq *z)
+{
+  int c = zmq_recv(z->fd, z->rpos, z->rbuf + z->rbsize - z->rpos, 0);
+
+  if (c < 0)
+  {
+    if (errno != EINTR && errno != EAGAIN)
+      z->err_hook(z, errno);
+  }
+  else if (!c)
+    z->err_hook(z, 0);
+  else
+  {
+    z->rpos += c;
+    if (z->rx_hook(z, z->rpos - z->rbuf))
+    {
+      /* We need to be careful since the socket could have been deleted by the hook */
+      //if (current_sock == z)
+      //  z->rpos = z->rbuf;
+    }
+    return 1;
+  }
+  return 0;
+}
+
 
 /*
  *	Main I/O Loop
@@ -2085,6 +2111,7 @@ io_init(void)
   init_list(&near_timers);
   init_list(&far_timers);
   init_list(&sock_list);
+  init_list(&zeromq_list);
   init_list(&global_event_list);
   krt_io_init();
   init_times();
@@ -2104,6 +2131,7 @@ io_loop(void)
   time_t tout;
   int hi, events;
   sock *s;
+  zeromq *z;
   node *n;
 
   sock_recalc_fdsets_p = 1;
@@ -2245,6 +2273,37 @@ io_loop(void)
 	    }
 
 	  stored_sock = current_sock;
+	}
+      // do basic zmq loop
+      WALK_LIST(n, zeromq_list)
+	{
+	  zeromq* ztemp = SKIP_BACK(zeromq, n, n);
+          zmq_pollitem_t items [] = {
+            { ztemp->fd, 0, ZMQ_POLLIN, 0 }
+          };
+	  /*if (z->rx_hook)
+	    {
+	      FD_SET(s->fd, &rd);
+	      if (s->fd > hi)
+		hi = s->fd;
+	    }
+	  else
+	    FD_CLR(s->fd, &rd);
+	  if (s->tx_hook && s->ttx != s->tpos)
+	    {
+	      FD_SET(s->fd, &wr);
+	      if (s->fd > hi)
+		hi = s->fd;
+	    }
+	  else
+	    FD_CLR(s->fd, &wr);*/
+          // do poll
+          zmq_poll(items, 1, 0);
+          if (items [0].revents & ZMQ_POLLIN) {
+            if(ztemp->rx_hook){
+              zq_read(ztemp);
+            }
+          }
 	}
     }
 }
